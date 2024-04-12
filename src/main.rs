@@ -1,6 +1,19 @@
 use honey_os::{display::Display, system::shell::SystemShell};
 use wasm_bindgen::{closure::Closure, prelude::wasm_bindgen, JsCast};
 
+const GREETING_MESSAGE: &str = r#"                             
+   XXXXXXXX                         
+  X        X        Welcome to HoneyOS  
+ X   XXXX   X       :3                    
+X   X    X   X                      
+X  X      X  X                      
+X  X      X  X                   
+X   X    X   X                      
+ X   XXXX   X                       
+  X        X                        
+   XXXXXXXX              
+"#;
+
 #[wasm_bindgen(main)]
 async fn main() {
     console_log::init_with_level(log::Level::Info).unwrap();
@@ -19,7 +32,7 @@ async fn main() {
         // Welcome message
         let shell = SystemShell::get();
         let mut shell = shell.lock().unwrap();
-        shell.stdout_mut().writeln("Welcome to Honey OS!");
+        shell.stdout_mut().write(GREETING_MESSAGE);
     }
     // Display the shell on the screen
     {

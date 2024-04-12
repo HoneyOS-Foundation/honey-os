@@ -49,18 +49,30 @@ impl Shell {
                 let command_parsed = ParsedCommand::parse(command);
 
                 // Clear the screen if the command is "clear"
-                if command_parsed.command == "clear" {
-                    self.stdout.clear();
-                    return;
-                }
-
-                // Add "Command not found" to the output
-                // TODO: Implement command execution
                 self.stdout.writeln(&format!("> {}", command));
-                self.stdout.writeln(format!(
-                    "behash: `{}` command not found",
-                    command_parsed.command
-                ));
+
+                // TODO: In the future each command will be a separate wasm module executed by the wasmer-vm.
+                // For now, we will just handle the clear and echo commands
+
+                if command_parsed.command == "help" {
+                    self.stdout.writeln("Available commands:");
+                    self.stdout.writeln("  clear - Clear the screen");
+                    self.stdout
+                        .writeln("  echo - Print the arguments to the screen");
+                }
+                // The clear command
+                else if command_parsed.command == "clear" {
+                    self.stdout.clear();
+                }
+                // The echo command
+                else if command_parsed.command == "echo" {
+                    self.stdout.writeln(&command_parsed.args.join(" "));
+                } else if command_parsed.command != "" {
+                    self.stdout.writeln(format!(
+                        "behash: `{}` command not found",
+                        command_parsed.command
+                    ));
+                }
             }
             '\u{0008}' => {
                 // Backspace key pressed
