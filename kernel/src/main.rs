@@ -1,17 +1,14 @@
-use honey_os::{display::Display, system::shell::SystemShell};
+use honeyos_kernel::{display::Display, system::shell::SystemShell};
 use wasm_bindgen::{closure::Closure, prelude::wasm_bindgen, JsCast};
 
-const GREETING_MESSAGE: &str = r#"                             
-   XXXXXXXX                         
-  X        X        Welcome to HoneyOS  
- X   XXXX   X       :3                    
-X   X    X   X                      
-X  X      X  X                      
-X  X      X  X                   
-X   X    X   X                      
- X   XXXX   X                       
-  X        X                        
-   XXXXXXXX              
+const GREETING_MESSAGE: &str = r#"                                                    
+                .-..-.                         .--.  .--. 
+                : :; :                        : ,. :: .--'
+                :    : .--. ,-.,-. .--. .-..-.: :: :`. `. 
+                : :: :' .; :: ,. :' '_.': :; :: :; : _`, :
+                :_;:_;`.__.':_;:_;`.__.'`._. ;`.__.'`.__.'
+                                         .-. :            
+Welcome to                               `._.'            
 "#;
 
 #[wasm_bindgen(main)]
@@ -36,7 +33,7 @@ async fn main() {
     }
     // Display the shell on the screen
     {
-        let display = Display::get();
+        let display: std::sync::Arc<std::sync::Mutex<Display>> = Display::get();
         let display = display.lock().unwrap();
         display.display(&SystemShell);
     }

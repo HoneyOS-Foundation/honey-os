@@ -1,3 +1,5 @@
+use std::fmt::Write;
+use std::future::IntoFuture;
 use std::sync::{Arc, Mutex, Once};
 
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
@@ -72,39 +74,28 @@ impl SystemShell {
 /// The key callback for the keyboard event listener
 fn key_callback(event: KeyboardEvent) {
     let key = event.key();
-    let system_shell = SystemShell::get();
-    let mut system_shell = system_shell.lock().unwrap();
+    let control = event.ctrl_key();
+    let shell = SystemShell::get();
+    let mut shell = shell.lock().unwrap();
     match key.as_str() {
-        "Enter" => {
-            system_shell.handle_key_press('\n');
-        }
-        "Backspace" => {
-            system_shell.handle_key_press('\u{0008}');
-        }
-        "ArrowUp" => {
-            system_shell.previous_command();
-        }
-        "ArrowDown" => {
-            system_shell.next_command();
-        }
-        "ArrowLeft" => {
-            system_shell.cursor_position = system_shell.cursor_position.saturating_sub(1)
-        }
-        "ArrowRight" => {
-            system_shell.cursor_position =
-                (system_shell.cursor_position + 1).min(system_shell.current_command.len())
-        }
+        "Enter" => shell.process_input(),
+        "Backspace" => shell.delete_previous(control),
+        "Delete" => shell.delete_next(control),
+        "ArrowUp" => shell.previous_command(),
+        "ArrowDown" => shell.next_command(),
+        "ArrowLeft" => shell.move_cursor_left(control),
+        "ArrowRight" => shell.move_cursor_right(control),
         _ => {
             if key.len() == 1 {
-                system_shell.handle_key_press(key.chars().next().unwrap());
+                shell.handle_key_press(key.chars().next().unwrap());
             }
         }
     }
+
     // Update the display
     let display = Display::get();
     let display = display.lock().unwrap();
-
-    drop(system_shell); // Release the lock before calling display
+    drop(shell); // Release the lock before calling display
     display.display(&SystemShell);
 }
 
@@ -112,7 +103,7 @@ impl Displayable for SystemShell {
     fn display(&self, display: &Display) {
         display.clear();
         let shell = SystemShell::get();
-        let shell = shell.lock().unwrap();
+        let mut shell = shell.lock().unwrap();
 
         let root = display.root();
         let output = shell.stdout().buffer();
@@ -138,6 +129,8 @@ impl Displayable for SystemShell {
         let current_command = format!("<div>> {}</div>", command_displayed);
 
         shell_display.set_inner_html(&format!("{}{}", output, current_command));
-        shell_display.set_scroll_top(shell_display.scroll_height() as i32);
+        display
+            .root()
+            .set_scroll_top(display.root().scroll_height());
     }
 }

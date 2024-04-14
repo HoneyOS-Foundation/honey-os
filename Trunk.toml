@@ -1,0 +1,3 @@
+[build]
+target = "kernel/index.html"
+dist = "dist"

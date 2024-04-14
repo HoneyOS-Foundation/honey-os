@@ -19,7 +19,10 @@ impl ParsedCommand {
         for part in parts {
             if part.starts_with('"') {
                 in_quotes = true;
-                current_arg = part.trim_start_matches('"').to_string();
+                current_arg = part
+                    .trim_start_matches('"')
+                    .trim_end_matches('"')
+                    .to_string();
             } else if part.ends_with('"') {
                 in_quotes = false;
                 current_arg.push(' ');

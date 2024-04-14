@@ -4,11 +4,10 @@ A wasm-based WebOS parodying old lesser-known operating systems such as BeOS
 
 ## Building
 
-HoneyOS utilizes [cargo-make](https://github.com/sagiegurari/cargo-make).
-These are the following build commands:
+HoneyOS uses trunk as a bundler:
 
 ```
-cargo make dist     -- Create a deployment-ready distribution of HoneyOS located in dist
-cargo make dist-dev -- Create a distribution of HoneyOS with debug symbols
-cargo make dev      -- Serve HoneyOS with hot-reloading enabled
+trunk build             # Build a distributable version of HoneyOS
+trunk serve             # Start a local webserver and host HoneyOS
+trunk server --watch .  # Start a local webserver and host HoneyOS with hot-reloading enabled
 ```
