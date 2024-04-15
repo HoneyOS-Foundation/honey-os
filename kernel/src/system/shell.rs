@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex, Once};
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 use web_sys::KeyboardEvent;
 
-use crate::display::{Display, Displayable};
-use crate::shell::Shell;
+use crate::display::{Displayable, HeadDisplay};
+use honeyos_shell::Shell;
 
 /// The unique ID of the system shell
 const SYSTEM_SHELL_ID: usize = 0;
@@ -42,7 +42,7 @@ impl SystemShell {
                 .unwrap();
 
             // Display the shell on the screen
-            let display = Display::get();
+            let display = HeadDisplay::get();
             let display = display.lock().unwrap();
             display.display(&SystemShell);
         });
@@ -93,14 +93,14 @@ fn key_callback(event: KeyboardEvent) {
     }
 
     // Update the display
-    let display = Display::get();
+    let display = HeadDisplay::get();
     let display = display.lock().unwrap();
     drop(shell); // Release the lock before calling display
     display.display(&SystemShell);
 }
 
 impl Displayable for SystemShell {
-    fn display(&self, display: &Display) {
+    fn display(&self, display: &HeadDisplay) {
         display.clear();
         let shell = SystemShell::get();
         let mut shell = shell.lock().unwrap();

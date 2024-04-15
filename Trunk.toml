@@ -1,3 +1,7 @@
 [build]
 target = "kernel/index.html"
 dist = "dist"
+
+[serve]
+target = "kernel/index.html"
+dist = "dist"

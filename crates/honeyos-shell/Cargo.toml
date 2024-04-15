@@ -1,19 +1,9 @@
 [package]
-name = "honeyos_kernel"
+name = "honeyos-shell"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-honeyos-shell = { path = "../crates/honeyos-shell" }
-
-console_error_panic_hook = "0.1.7"
-console_log = "1.0.0"
-log = "0.4.21"
-wasm-bindgen = "0.2.92"
-wasm-bindgen-futures = "0.4.42"
-wasmer = { version = "4.2.8", default-features = false, features = [
-    "js-default",
-] }
 web-sys = { version = "0.3.69", features = [
     "console",
     "Document",

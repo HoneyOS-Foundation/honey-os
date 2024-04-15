@@ -317,11 +317,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
 
 [[package]]
+name = "honeyos-shell"
+version = "0.1.0"
+dependencies = [
+ "web-sys",
+]
+
+[[package]]
 name = "honeyos_kernel"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "console_log",
+ "honeyos-shell",
  "log",
  "wasm-bindgen",
  "wasm-bindgen-futures",

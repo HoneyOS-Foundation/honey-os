@@ -32,6 +32,7 @@ body {
 .shell {
     display: block; 
     font-family: "VT323", monospace;
+    font-size: 20px;
 
     justify-content: left;
     flex-direction: column;

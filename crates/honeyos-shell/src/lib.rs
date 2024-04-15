@@ -1,7 +1,9 @@
 pub mod parse;
+pub mod stdout;
+
+use stdout::StdOut;
 
 use self::parse::ParsedCommand;
-use crate::stdout::StdOut;
 
 /// The interactive shell of the OS
 #[derive(Default, Debug, Clone)]
@@ -63,7 +65,7 @@ impl Shell {
         // For now, we will just handle the clear and echo commands
 
         if command_parsed.command == "help" {
-            self.stdout.writeln("clear echo");
+            self.stdout.writeln("clear echo reboot");
         }
         // The clear command
         else if command_parsed.command == "clear" {
@@ -72,6 +74,10 @@ impl Shell {
         // The echo command
         else if command_parsed.command == "echo" {
             self.stdout.writeln(&command_parsed.args.join(" "));
+        }
+        // The reboot command
+        else if command_parsed.command == "reboot" {
+            web_sys::window().unwrap().location().reload().unwrap();
         } else if command_parsed.command != "" {
             self.stdout.writeln(format!(
                 "behash: `{}` command not found",
@@ -237,7 +243,6 @@ impl Shell {
     pub fn delete_next(&mut self, ctrl_key: bool) {
         if ctrl_key {
             // Delete the next word
-            let next_cursor = self.cursor_position;
             let mut cursor = self.cursor_position;
             while cursor < self.current_command.len()
                 && !self

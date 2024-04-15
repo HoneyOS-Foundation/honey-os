@@ -1,14 +1,14 @@
-use honeyos_kernel::{display::Display, system::shell::SystemShell};
+use honeyos_kernel::{display::HeadDisplay, system::shell::SystemShell};
 use wasm_bindgen::{closure::Closure, prelude::wasm_bindgen, JsCast};
 
 const GREETING_MESSAGE: &str = r#"                                                    
-                .-..-.                         .--.  .--. 
-                : :; :                        : ,. :: .--'
-                :    : .--. ,-.,-. .--. .-..-.: :: :`. `. 
-                : :: :' .; :: ,. :' '_.': :; :: :; : _`, :
-                :_;:_;`.__.':_;:_;`.__.'`._. ;`.__.'`.__.'
-                                         .-. :            
-Welcome to                               `._.'            
+.-..-.                         .--.  .--.   Developed by GetAGripGal
+: :; :                        : ,. :: .--'  :3
+:    : .--. ,-.,-. .--. .-..-.: :: :`. `. 
+: :: :' .; :: ,. :' '_.': :; :: :; : _`, :
+:_;:_;`.__.':_;:_;`.__.'`._. ;`.__.'`.__.'
+                         .-. :            
+                         `._.'            
 "#;
 
 #[wasm_bindgen(main)]
@@ -33,7 +33,7 @@ async fn main() {
     }
     // Display the shell on the screen
     {
-        let display: std::sync::Arc<std::sync::Mutex<Display>> = Display::get();
+        let display: std::sync::Arc<std::sync::Mutex<HeadDisplay>> = HeadDisplay::get();
         let display = display.lock().unwrap();
         display.display(&SystemShell);
     }
@@ -50,7 +50,7 @@ fn set_panicking_hook() {
             // Destroy the head shell
             SystemShell::destroy();
 
-            let display = Display::get();
+            let display = HeadDisplay::get();
             let display = display.lock().unwrap();
             display.clear();
             display.root().set_inner_html(&format!(
@@ -69,7 +69,7 @@ fn init_display(document: &web_sys::Document) {
     document.body().unwrap().append_child(&display).unwrap();
 
     // Initialize the head display
-    Display::init_once(display.unchecked_into());
+    HeadDisplay::init_once(display.unchecked_into());
 }
 
 /// The main execution loop of the OS
