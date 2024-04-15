@@ -4,9 +4,9 @@ use wasm_bindgen::{closure::Closure, prelude::wasm_bindgen, JsCast};
 const GREETING_MESSAGE: &str = r#"                                                    
 .-..-.                         .--.  .--.   Developed by GetAGripGal
 : :; :                        : ,. :: .--'  :3
-:    : .--. ,-.,-. .--. .-..-.: :: :`. `. 
-: :: :' .; :: ,. :' '_.': :; :: :; : _`, :
-:_;:_;`.__.':_;:_;`.__.'`._. ;`.__.'`.__.'
+:    : .--. ,-.,-. .--. .-..-.: :: :`. `.   Memory: #device_memory#
+: :: :' .; :: ,. :' '_.': :; :: :; : _`, :  User-Agent: #user_agent#
+:_;:_;`.__.':_;:_;`.__.'`._. ;`.__.'`.__.'  Online: #online#
                          .-. :            
                          `._.'            
 "#;
@@ -21,22 +21,8 @@ async fn main() {
 
     // Initialize the display
     init_display(&document);
-
-    // Initialize the head shell
-    {
-        SystemShell::init_once();
-
-        // Welcome message
-        let shell = SystemShell::get();
-        let mut shell = shell.lock().unwrap();
-        shell.stdout_mut().write(GREETING_MESSAGE);
-    }
-    // Display the shell on the screen
-    {
-        let display: std::sync::Arc<std::sync::Mutex<HeadDisplay>> = HeadDisplay::get();
-        let display = display.lock().unwrap();
-        display.display(&SystemShell);
-    }
+    // Initialize the system shell
+    init_shell();
 
     // Start the execution loop
     execution_loop(0.0);
@@ -70,6 +56,36 @@ fn init_display(document: &web_sys::Document) {
 
     // Initialize the head display
     HeadDisplay::init_once(display.unchecked_into());
+}
+
+/// Initialize the system shell
+fn init_shell() {
+    SystemShell::init_once();
+
+    // Welcome message
+    let shell = SystemShell::get();
+    let mut shell = shell.lock().unwrap();
+    shell.stdout_mut().write(format_greeting_message());
+
+    // Display the shell on the screen
+    {
+        let display: std::sync::Arc<std::sync::Mutex<HeadDisplay>> = HeadDisplay::get();
+        let display = display.lock().unwrap();
+        display.display(&SystemShell);
+    }
+}
+
+/// Format the greeting message with the system information
+fn format_greeting_message() -> String {
+    let navigator = web_sys::window().unwrap().navigator();
+    let user_agent = navigator.user_agent().unwrap();
+    let device_memory = navigator.device_memory().unwrap();
+    let online = navigator.on_line();
+
+    GREETING_MESSAGE
+        .replace("#user_agent#", &user_agent)
+        .replace("#device_memory#", &device_memory.to_string())
+        .replace("#online#", &online.to_string())
 }
 
 /// The main execution loop of the OS
