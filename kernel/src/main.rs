@@ -1,14 +1,18 @@
 use honeyos_kernel::{display::HeadDisplay, system::shell::SystemShell};
 use wasm_bindgen::{closure::Closure, prelude::wasm_bindgen, JsCast};
 
+/// The greeting message of the OS
 const GREETING_MESSAGE: &str = r#"                                                    
 .-..-.                         .--.  .--.   Developed by GetAGripGal
-: :; :                        : ,. :: .--'  :3
-:    : .--. ,-.,-. .--. .-..-.: :: :`. `.   Memory: #device_memory#
+: :; :                        : ,. :: .--'  ---------------------------
+:    : .--. ,-.,-. .--. .-..-.: :: :`. `.   Online: #online#
 : :: :' .; :: ,. :' '_.': :; :: :; : _`, :  User-Agent: #user_agent#
-:_;:_;`.__.':_;:_;`.__.'`._. ;`.__.'`.__.'  Online: #online#
-                         .-. :            
-                         `._.'            
+:_;:_;`.__.':_;:_;`.__.'`._. ;`.__.'`.__.'  ---------------------------
+                          .-. :             Welcome to HoneyOS!
+                          `._.'             Type 'help' for a list of commands.
+                                            A desktop environment is coming soon!
+                                            For now, enjoy the shell! :3
+                                            ---------------------------
 "#;
 
 #[wasm_bindgen(main)]
@@ -63,10 +67,11 @@ fn init_shell() {
     SystemShell::init_once();
 
     // Welcome message
-    let shell = SystemShell::get();
-    let mut shell = shell.lock().unwrap();
-    shell.stdout_mut().write(format_greeting_message());
-
+    {
+        let shell = SystemShell::get();
+        let mut shell = shell.lock().unwrap();
+        shell.stdout_mut().write(format_greeting_message());
+    }
     // Display the shell on the screen
     {
         let display: std::sync::Arc<std::sync::Mutex<HeadDisplay>> = HeadDisplay::get();
@@ -77,14 +82,13 @@ fn init_shell() {
 
 /// Format the greeting message with the system information
 fn format_greeting_message() -> String {
-    let navigator = web_sys::window().unwrap().navigator();
+    let window = web_sys::window().unwrap();
+    let navigator = window.navigator();
     let user_agent = navigator.user_agent().unwrap();
-    let device_memory = navigator.device_memory().unwrap();
     let online = navigator.on_line();
 
     GREETING_MESSAGE
         .replace("#user_agent#", &user_agent)
-        .replace("#device_memory#", &device_memory.to_string())
         .replace("#online#", &online.to_string())
 }
 
