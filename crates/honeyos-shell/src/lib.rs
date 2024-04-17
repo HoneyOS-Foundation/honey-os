@@ -1,12 +1,15 @@
 pub mod parse;
 pub mod stdout;
 
+use std::sync::{Arc, Mutex};
+
+use honeyos_fs::FsManager;
 use stdout::StdOut;
 
 use self::parse::ParsedCommand;
 
 /// The interactive shell of the OS
-#[derive(Default, Debug, Clone)]
+#[derive(Clone)]
 pub struct Shell {
     // The unique ID of the shell
     id: usize,
@@ -24,14 +27,26 @@ pub struct Shell {
 
     // Whether control is pressed
     pub control_pressed: bool,
+
+    // A reference to the file system manager
+    fs_manager: Arc<Mutex<FsManager>>,
+    // The current directory
+    current_directory: String,
 }
 
 impl Shell {
     /// Create a new shell instance
-    pub fn new(id: usize) -> Self {
+    pub fn new(id: usize, fs_manager: Arc<Mutex<FsManager>>) -> Self {
         Self {
             id,
-            ..Default::default()
+            history: Vec::new(),
+            history_index: 0,
+            stdout: StdOut::new(),
+            cursor_position: 0,
+            current_command: String::new(),
+            control_pressed: false,
+            fs_manager,
+            current_directory: "/".to_string(),
         }
     }
 
@@ -58,14 +73,18 @@ impl Shell {
         self.cursor_position = 0;
 
         let command_parsed = ParsedCommand::parse(self.current_command());
-        self.stdout
-            .writeln(&format!("> {}", self.current_command()));
+        self.stdout.writeln(&format!(
+            "{}> {}",
+            self.current_directory(),
+            self.current_command()
+        ));
 
         // TODO: In the future each command will be a separate wasm module executed by the wasmer-vm.
         // For now, we will just handle the clear and echo commands
 
         if command_parsed.command == "help" {
-            self.stdout.writeln("clear echo reboot");
+            self.stdout
+                .writeln("help clear echo reboot ls cd touch mkdir rm rmdir cp mv");
         }
         // The clear command
         else if command_parsed.command == "clear" {
@@ -78,7 +97,146 @@ impl Shell {
         // The reboot command
         else if command_parsed.command == "reboot" {
             web_sys::window().unwrap().location().reload().unwrap();
-        } else if command_parsed.command != "" {
+        }
+        // The ls command
+        else if command_parsed.command == "ls" {
+            let fs_manager = self.fs_manager.lock().unwrap();
+            let files = fs_manager.root().ls(&self.current_directory);
+            if let Some(files) = files {
+                for file in files {
+                    self.stdout.writeln(&file);
+                }
+            }
+        }
+        // The cd command
+        else if command_parsed.command == "cd" {
+            let fs_manager = self.fs_manager.lock().unwrap();
+            let new_directory = command_parsed.args.join(" ");
+            let full_path = if new_directory.starts_with('/') {
+                new_directory.clone()
+            } else {
+                if self.current_directory == "/" {
+                    format!("/{}", new_directory)
+                } else {
+                    format!("{}/{}", self.current_directory, new_directory)
+                }
+            };
+            if fs_manager.root().is_dir(&full_path) {
+                self.current_directory = honeyos_fs::normalize_path(&full_path);
+            } else if fs_manager.root().is_file(&full_path) {
+                self.stdout
+                    .writeln(format!("cd: {} Not a directory", full_path));
+            } else {
+                self.stdout
+                    .writeln(format!("cd: {} No such file or directory", full_path));
+            }
+        }
+        // The touch command
+        else if command_parsed.command == "touch" {
+            let fs_manager = self.fs_manager.lock().unwrap();
+            let file_name = command_parsed.args.join(" ");
+            let full_path = if file_name.starts_with('/') {
+                file_name.clone()
+            } else {
+                format!("{}/{}", self.current_directory, file_name)
+            };
+            fs_manager.root().touch(&full_path);
+        }
+        // The mkdir command
+        else if command_parsed.command == "mkdir" {
+            let fs_manager = self.fs_manager.lock().unwrap();
+            let directory_name = command_parsed.args.join(" ");
+            let full_path = if directory_name.starts_with('/') {
+                directory_name.clone()
+            } else {
+                format!("{}/{}", self.current_directory, directory_name)
+            };
+            fs_manager.root().mkdir(&full_path);
+        }
+        // The rm command
+        else if command_parsed.command == "rm" {
+            let fs_manager = self.fs_manager.lock().unwrap();
+            let file_name = command_parsed.args.join(" ");
+            let full_path = if file_name.starts_with('/') {
+                file_name.clone()
+            } else {
+                format!("{}/{}", self.current_directory, file_name)
+            };
+            if !fs_manager.root().exists(&full_path) {
+                self.stdout.writeln(format!(
+                    "rm: cannot remove '{}': No such file or directory",
+                    full_path
+                ));
+            } else {
+                fs_manager.root().rm(&full_path);
+            }
+        }
+        // The rmdir command
+        else if command_parsed.command == "rmdir" {
+            let fs_manager = self.fs_manager.lock().unwrap();
+            let directory_name = command_parsed.args.join(" ");
+            let full_path = if directory_name.starts_with('/') {
+                directory_name.clone()
+            } else {
+                format!("{}/{}", self.current_directory, directory_name)
+            };
+            fs_manager.root().rmdir(&full_path);
+        }
+        // The cp command
+        else if command_parsed.command == "cp" {
+            let fs_manager = self.fs_manager.lock().unwrap();
+            let from = command_parsed.args[0].clone();
+            let to = command_parsed.args[1].clone();
+            fs_manager.root().cp(&from, &to);
+        }
+        // The mv command
+        else if command_parsed.command == "mv" {
+            let fs_manager = self.fs_manager.lock().unwrap();
+            let from = command_parsed.args[0].clone();
+            let to = command_parsed.args[1].clone();
+            fs_manager.root().mv(&from, &to);
+        }
+        // The write command
+        else if command_parsed.command == "write" {
+            let fs_manager = self.fs_manager.lock().unwrap();
+            if command_parsed.args.len() > 2 {
+                let file_name = command_parsed.args[0].clone();
+                let content = command_parsed.args[1..].join(" ");
+                log::info!("Writing to file: {}", file_name);
+                let full_path = if file_name.starts_with('/') {
+                    file_name.clone()
+                } else {
+                    format!("{}/{}", self.current_directory, file_name)
+                };
+                // If the file does not exist, create it
+                if !fs_manager.root().exists(&full_path) {
+                    log::info!("Creating file: {}", full_path);
+                    fs_manager.root().touch(&full_path);
+                }
+                fs_manager.root().write(&full_path, content.as_bytes());
+            } else {
+                self.stdout.writeln("write: missing file operand");
+            }
+        }
+        // The cat command
+        else if command_parsed.command == "cat" {
+            let fs_manager = self.fs_manager.lock().unwrap();
+            let file_name = command_parsed.args.join(" ");
+            let full_path = if file_name.starts_with('/') {
+                file_name.clone()
+            } else {
+                format!("{}/{}", self.current_directory, file_name)
+            };
+            let content = fs_manager.root().read(&full_path);
+            if let Some(content) = content {
+                self.stdout.writeln(&*String::from_utf8_lossy(&content));
+            } else {
+                self.stdout
+                    .writeln(format!("cat: {}: No such file or directory", full_path));
+            }
+        }
+        // Handle an unknown command
+        else if command_parsed.command != "" {
             self.stdout.writeln(format!(
                 "behash: `{}` command not found",
                 command_parsed.command
@@ -107,6 +265,11 @@ impl Shell {
     /// Get the output mutibly
     pub fn stdout_mut(&mut self) -> &mut StdOut {
         &mut self.stdout
+    }
+
+    /// Get the current directory
+    pub fn current_directory(&self) -> &str {
+        &self.current_directory
     }
 
     /// Move to the previous command in the history

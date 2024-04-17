@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+honeyos-fs = { path = "../honeyos-fs" }
+log = "0.4.21"
+
 web-sys = { version = "0.3.69", features = [
     "console",
     "Document",

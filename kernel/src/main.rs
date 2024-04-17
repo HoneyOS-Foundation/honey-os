@@ -1,4 +1,6 @@
-use honeyos_kernel::{display::HeadDisplay, system::shell::SystemShell};
+use honeyos_kernel::{
+    display::HeadDisplay, system::fs::init_fs_manager, system::shell::SystemShell,
+};
 use wasm_bindgen::{closure::Closure, prelude::wasm_bindgen, JsCast};
 
 /// The greeting message of the OS
@@ -20,9 +22,13 @@ async fn main() {
     console_log::init_with_level(log::Level::Info).unwrap();
     set_panicking_hook();
 
+    log::info!("{}", format_greeting_message());
+
     let window = web_sys::window().unwrap();
     let document = window.document().unwrap();
 
+    // Initialize the filesystem manager
+    init_fs_manager();
     // Initialize the display
     init_display(&document);
     // Initialize the system shell

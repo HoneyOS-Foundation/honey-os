@@ -40,6 +40,55 @@ body {
 
     white-space: pre-wrap;
 }
+.input-display {
+    display: flex; 
+    font-family: "VT323", monospace;
+    font-size: 20px;
+
+    justify-content: left ;
+    flex-direction: row;
+    color: #ffffff;
+
+    white-space: pre-wrap;
+    width: 100%;
+}
+
+.fs-display {
+    display: flex;
+    font-family: "VT323", monospace;
+    font-size: 20px;
+
+    justify-content: left;
+    /* flex-direction: column; */
+    color: #ffffff;
+
+    white-space: pre-wrap;
+    width: fit-content;
+}
+
+.command-input {
+    display: inline-block;
+    border: 0;
+    font-family: "VT323", monospace;
+    font-size: 20px;
+
+    justify-content: left;
+    flex-direction: column;
+    color: #ffffff;
+    background-color: transparent;
+
+    white-space: pre-wrap;
+
+    width: 100%;
+}
+
+.command-input:focus {
+    outline: none;
+}
+
+.command-input::placeholder {
+    color: #ffffff;
+}
 
 .cursor {
     color: #ffffff;

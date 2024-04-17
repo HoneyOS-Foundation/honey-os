@@ -1,11 +1,10 @@
-use std::fmt::Write;
-use std::future::IntoFuture;
 use std::sync::{Arc, Mutex, Once};
 
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 use web_sys::KeyboardEvent;
 
 use crate::display::{Displayable, HeadDisplay};
+use crate::system::fs::fs_manager;
 use honeyos_shell::Shell;
 
 /// The unique ID of the system shell
@@ -19,6 +18,12 @@ static mut SYSTEM_SHELL: Option<Arc<Mutex<Shell>>> = None;
 /// The callback for the keyboard event listener
 static mut KEY_CALLBACK: Option<JsValue> = None;
 
+/// The ondrop callback for the file drop event listener
+// static mut DROP_CALLBACK: Option<JsValue> = None;
+
+/// The callback for when the input is changed
+static mut INPUT_CHANGE_CALLBACK: Option<JsValue> = None;
+
 /// Initialize the system shell of the OS
 pub struct SystemShell;
 
@@ -28,18 +33,26 @@ impl SystemShell {
     pub fn init_once() {
         static SET_HOOK: Once = Once::new();
         SET_HOOK.call_once(|| unsafe {
-            SYSTEM_SHELL = Some(Arc::new(Mutex::new(Shell::new(SYSTEM_SHELL_ID))));
-            // Initialize the keyboard event listener
-            let js_callback = Closure::wrap(Box::new(key_callback) as Box<dyn FnMut(_)>);
-            KEY_CALLBACK = Some(js_callback.into_js_value());
-            // Add the event listener
-            web_sys::window()
-                .unwrap()
-                .add_event_listener_with_callback(
-                    "keydown",
-                    KEY_CALLBACK.as_ref().unwrap().unchecked_ref(),
-                )
+            SYSTEM_SHELL = Some(Arc::new(Mutex::new(Shell::new(
+                SYSTEM_SHELL_ID,
+                fs_manager(),
+            ))));
+
+            // Set up the event listeners
+            let window = web_sys::window().unwrap();
+            let document = window.document().unwrap();
+            let input_change_callback =
+                Closure::wrap(Box::new(input_change_callback) as Box<dyn FnMut(_)>);
+            let input_change_callback = input_change_callback.into_js_value();
+            INPUT_CHANGE_CALLBACK = Some(input_change_callback);
+
+            // Set up the keyboard event listener
+            let key_callback = Closure::wrap(Box::new(key_callback) as Box<dyn FnMut(_)>);
+            let key_callback = key_callback.into_js_value();
+            document
+                .add_event_listener_with_callback("keydown", key_callback.as_ref().unchecked_ref())
                 .unwrap();
+            KEY_CALLBACK = Some(key_callback);
 
             // Display the shell on the screen
             let display = HeadDisplay::get();
@@ -51,17 +64,20 @@ impl SystemShell {
     /// Destroy the system shell
     pub fn destroy() {
         unsafe {
-            // Remove the event listener
-            web_sys::window()
-                .unwrap()
+            // Remove the event listeners
+            let window = web_sys::window().unwrap();
+            let document = window.document().unwrap();
+            document
                 .remove_event_listener_with_callback(
                     "keydown",
                     KEY_CALLBACK.as_ref().unwrap().unchecked_ref(),
                 )
                 .unwrap();
+
             // Clear the system shell
             SYSTEM_SHELL = None;
             KEY_CALLBACK = None;
+            INPUT_CHANGE_CALLBACK = None;
         }
     }
 
@@ -71,6 +87,13 @@ impl SystemShell {
     }
 }
 
+/// Update the display of the system shell
+pub fn update_system_shell() {
+    let display = HeadDisplay::get();
+    let display = display.lock().unwrap();
+    display.display(&SystemShell);
+}
+
 /// The key callback for the keyboard event listener
 fn key_callback(event: KeyboardEvent) {
     let key = event.key();
@@ -78,32 +101,44 @@ fn key_callback(event: KeyboardEvent) {
     let shell = SystemShell::get();
     let mut shell = shell.lock().unwrap();
     match key.as_str() {
-        "Enter" => shell.process_input(),
-        "Backspace" => shell.delete_previous(control),
-        "Delete" => shell.delete_next(control),
-        "ArrowUp" => shell.previous_command(),
-        "ArrowDown" => shell.next_command(),
-        "ArrowLeft" => shell.move_cursor_left(control),
-        "ArrowRight" => shell.move_cursor_right(control),
-        _ => {
-            if key.len() == 1 {
-                shell.handle_key_press(key.chars().next().unwrap());
-            }
+        "Enter" => {
+            shell.process_input();
+            drop(shell);
+            update_system_shell();
         }
-    }
+        "ArrowUp" => {
+            shell.previous_command();
+            drop(shell);
+            update_system_shell();
+        }
+        "ArrowDown" => {
+            shell.next_command();
+            drop(shell);
+            update_system_shell();
+        }
 
-    // Update the display
-    let display = HeadDisplay::get();
-    let display = display.lock().unwrap();
-    drop(shell); // Release the lock before calling display
-    display.display(&SystemShell);
+        _ => {}
+    }
+}
+
+/// The input change callback for the input event listener
+fn input_change_callback(event: KeyboardEvent) {
+    let value = event
+        .target()
+        .unwrap()
+        .dyn_into::<web_sys::HtmlInputElement>()
+        .unwrap()
+        .value();
+    let shell = SystemShell::get();
+    let mut shell = shell.lock().unwrap();
+    shell.current_command = value;
 }
 
 impl Displayable for SystemShell {
     fn display(&self, display: &HeadDisplay) {
         display.clear();
         let shell = SystemShell::get();
-        let mut shell = shell.lock().unwrap();
+        let shell = shell.lock().unwrap();
 
         let root = display.root();
         let output = shell.stdout().buffer();
@@ -121,14 +156,53 @@ impl Displayable for SystemShell {
             .collect::<String>();
 
         // Insert a `|` at the cursor position
-        let command_displayed = format!(
-            "{}<span class='cursor'>|</span>{}",
-            &shell.current_command()[..shell.cursor_position],
-            &shell.current_command()[shell.cursor_position..]
-        );
-        let current_command = format!("<div>> {}</div>", command_displayed);
+        // let command_displayed = format!(
+        //     "{}<span class='cursor'>|</span>{}",
+        //     &shell.current_command()[..shell.cursor_position],
+        //     &shell.current_command()[shell.cursor_position..]
+        // );
+        // Create the input display elements
+        let input_display = document.create_element("div").unwrap();
+        let input_element = document.create_element("input").unwrap();
+        input_element.set_class_name("command-input");
+        let input_element = input_element
+            .dyn_into::<web_sys::HtmlInputElement>()
+            .unwrap();
+        input_element.set_attribute("type", "text").unwrap();
+        input_element
+            .set_attribute("value", &shell.current_command())
+            .unwrap();
 
-        shell_display.set_inner_html(&format!("{}{}", output, current_command));
+        input_element.focus().unwrap();
+        input_element
+            .set_selection_range(shell.cursor_position as u32, shell.cursor_position as u32);
+
+        // Set the callback for the input element
+        unsafe {
+            input_element
+                .add_event_listener_with_callback(
+                    "input",
+                    INPUT_CHANGE_CALLBACK.as_ref().unwrap().unchecked_ref(),
+                )
+                .unwrap();
+        }
+
+        // Add the input element to the display
+        input_display.set_class_name("input-display");
+        input_display.set_inner_html(&format!(
+            "<div class='fs-display'>{}> </div> ",
+            shell.current_directory()
+        ));
+        let input_element = input_display.append_child(&input_element).unwrap();
+
+        shell_display.set_inner_html(&format!("{}", output));
+        shell_display.append_child(&input_display).unwrap();
+
+        let input_element = input_element
+            .dyn_into::<web_sys::HtmlInputElement>()
+            .unwrap();
+        input_element.focus().unwrap();
+
         display
             .root()
             .set_scroll_top(display.root().scroll_height());
