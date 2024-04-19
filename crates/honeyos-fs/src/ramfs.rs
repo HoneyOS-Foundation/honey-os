@@ -45,7 +45,7 @@ impl FsHandler for RamFsHandler {
 
     fn write(&mut self, path: &str, content: &[u8]) -> Option<()> {
         let entry = self.file_table.get(path, TableItem::File)?;
-        if let crate::filetable::PathResult::File(file) = entry {
+        if let PathResult::File(file) = entry {
             self.data_table.insert(file, content.to_vec());
             return Some(());
         }
@@ -53,7 +53,6 @@ impl FsHandler for RamFsHandler {
     }
 
     fn mkdir(&mut self, path: &str) -> Option<()> {
-        // Check if the directory already exists
         if self.exists(path) {
             return None;
         }
@@ -62,7 +61,6 @@ impl FsHandler for RamFsHandler {
     }
 
     fn touch(&mut self, path: &str) -> Option<()> {
-        // Check if the file already exists
         if self.exists(path) {
             return None;
         }
