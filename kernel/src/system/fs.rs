@@ -1,4 +1,4 @@
-use honeyos_fs::{localfs::LocalFsHandler, FsManager};
+use honeyos_fs::{localfs::LocalFsHandler, ramfs::RamFsHandler, FsManager};
 use std::sync::{Arc, Mutex, Once};
 
 /// The filesystem manager of the OS
@@ -10,7 +10,7 @@ pub fn init_fs_manager() {
     static SET_HOOK: Once = Once::new();
     SET_HOOK.call_once(|| unsafe {
         FS_MANAGER = Some(Arc::new(Mutex::new(FsManager::new(Box::new(
-            LocalFsHandler,
+            RamFsHandler::new(),
         )))));
     });
 }

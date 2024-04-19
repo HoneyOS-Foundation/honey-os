@@ -16,7 +16,7 @@ pub enum PathResult {
 }
 
 /// A file table for the system
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileTable {
     pub directories: hashbrown::HashMap<Uuid, Directory>,
     pub files: hashbrown::HashMap<Uuid, File>,
@@ -34,7 +34,7 @@ pub struct File {
 /// A directory in the file table
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Directory {
-    pub parent: Option<Uuid>,
+    pub parent: Uuid,
     pub id: Uuid,
     pub name: String,
     pub files: Vec<Uuid>,
@@ -48,7 +48,7 @@ impl FileTable {
         // Create the root directory
         let root_id = Uuid::nil();
         let root = Directory {
-            parent: None,
+            parent: Uuid::nil(),
             id: root_id,
             name: "/".to_string(),
             files: Vec::new(),
@@ -97,7 +97,7 @@ impl FileTable {
             TableItem::Directory => {
                 let dir_name = parts.last().unwrap();
                 let dir = Directory {
-                    parent: Some(current),
+                    parent: current,
                     id,
                     name: dir_name.to_string(),
                     files: Vec::new(),
@@ -118,20 +118,29 @@ impl FileTable {
     /// `.` is used to stay in the same directory.
     pub fn get(&self, path: &str, item: TableItem) -> Option<PathResult> {
         let mut current = Uuid::nil();
-        let parts = path.split('/').filter(|p| !p.is_empty());
+
+        if path == "/" {
+            return Some(PathResult::Directory(Uuid::nil()));
+        }
+
+        let parts = path
+            .split('/')
+            .filter(|p| !p.is_empty())
+            .collect::<Vec<&str>>()
+            .iter()
+            .map(|p| p.to_string())
+            .collect::<Vec<String>>();
+
         for part in parts.clone() {
             if part == ".." {
                 if let Some(dir) = self.directories.get(&current) {
-                    if let Some(parent) = dir.parent {
-                        current = parent;
-                    } else {
-                        current = Uuid::nil();
-                    }
+                    current = dir.parent;
                 }
             } else if part == "." {
                 continue;
             } else {
                 if let Some(dir) = self.directories.get(&current) {
+                    let mut found = false;
                     if let Some(id) = dir.directories.iter().find(|id| {
                         if let Some(directory) = self.directories.get(*id) {
                             directory.name == part
@@ -139,7 +148,11 @@ impl FileTable {
                             false
                         }
                     }) {
+                        found = true;
                         current = *id;
+                    }
+                    if !found && item == TableItem::Directory {
+                        return None;
                     }
                 }
             }
@@ -150,7 +163,7 @@ impl FileTable {
                 if let Some(dir) = self.directories.get(&current) {
                     if let Some(id) = dir.files.iter().find(|id| {
                         if let Some(file) = self.files.get(*id) {
-                            file.name == parts.clone().last().unwrap()
+                            file.name == *parts.clone().last().unwrap()
                         } else {
                             false
                         }
@@ -159,27 +172,7 @@ impl FileTable {
                     }
                 }
             }
-            TableItem::Directory => {
-                if let Some(dir) = self.directories.get(&current) {
-                    if current.is_nil() {
-                        return Some(PathResult::Directory(current));
-                    }
-
-                    let dir_name = parts.clone().last()?;
-                    if dir.name == dir_name {
-                        return Some(PathResult::Directory(current));
-                    }
-                    if let Some(id) = dir.directories.iter().find(|id| {
-                        if let Some(directory) = self.directories.get(*id) {
-                            directory.name == dir_name
-                        } else {
-                            false
-                        }
-                    }) {
-                        return Some(PathResult::Directory(*id));
-                    }
-                }
-            }
+            TableItem::Directory => return Some(PathResult::Directory(current)),
         }
         None
     }

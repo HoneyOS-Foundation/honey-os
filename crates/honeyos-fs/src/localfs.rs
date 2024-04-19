@@ -15,10 +15,11 @@ pub struct LocalFsFileDataTable(HashMap<Uuid, Vec<u8>>);
 pub struct LocalFsHandler;
 
 impl FsHandler for LocalFsHandler {
-    fn read_file_table(&self) -> FileTable {
+    fn read_file_table(&mut self) -> FileTable {
         let window = web_sys::window().unwrap();
         let storage = window.local_storage().unwrap().unwrap();
         if let Some(data) = storage.get_item("file_table").unwrap() {
+            log::info!("Reading file table from storage: {}", data);
             let file_table: FileTable = serde_json::from_str(&data).unwrap();
             return file_table;
         }
@@ -31,7 +32,7 @@ impl FsHandler for LocalFsHandler {
         file_table
     }
 
-    fn write_file_table(&self, file_table: &FileTable) {
+    fn write_file_table(&mut self, file_table: &FileTable) {
         let window = web_sys::window().unwrap();
         let storage = window.local_storage().unwrap().unwrap();
         storage
@@ -39,7 +40,7 @@ impl FsHandler for LocalFsHandler {
             .unwrap();
     }
 
-    fn read(&self, path: &str) -> Option<Vec<u8>> {
+    fn read(&mut self, path: &str) -> Option<Vec<u8>> {
         let file_table = self.read_file_table();
         let entry = file_table.get(path, TableItem::File)?;
         if let PathResult::File(file) = entry {
@@ -52,7 +53,7 @@ impl FsHandler for LocalFsHandler {
         None
     }
 
-    fn write(&self, path: &str, content: &[u8]) -> Option<()> {
+    fn write(&mut self, path: &str, content: &[u8]) -> Option<()> {
         let file_table = self.read_file_table();
         let entry = file_table.get(path, TableItem::File)?;
         if let PathResult::File(file) = entry {
@@ -64,16 +65,23 @@ impl FsHandler for LocalFsHandler {
         None
     }
 
-    fn mkdir(&self, path: &str) -> Option<()> {
+    fn mkdir(&mut self, path: &str) -> Option<()> {
         let file_table = self.read_file_table();
+        // Check if the directory already exists
+        if file_table.get(path, TableItem::Directory).is_some() {
+            return None;
+        }
         let mut file_table = file_table;
         file_table.create(path, TableItem::Directory).unwrap();
         self.write_file_table(&file_table);
         Some(())
     }
 
-    fn touch(&self, path: &str) -> Option<()> {
-        log::info!("Touching file: {}", path);
+    fn touch(&mut self, path: &str) -> Option<()> {
+        // Check if the file already exists
+        if self.exists(path) {
+            return None;
+        }
         let file_table = self.read_file_table();
         let mut file_table = file_table;
         file_table.create(path, TableItem::File)?;
@@ -81,7 +89,7 @@ impl FsHandler for LocalFsHandler {
         Some(())
     }
 
-    fn rm(&self, path: &str) -> Option<()> {
+    fn rm(&mut self, path: &str) -> Option<()> {
         let file_table = self.read_file_table();
         let mut file_table = file_table;
         file_table.remove(path)?;
@@ -89,7 +97,7 @@ impl FsHandler for LocalFsHandler {
         Some(())
     }
 
-    fn rmdir(&self, path: &str) -> Option<()> {
+    fn rmdir(&mut self, path: &str) -> Option<()> {
         let file_table = self.read_file_table();
         let mut file_table = file_table;
         file_table.remove(path)?;
@@ -97,7 +105,7 @@ impl FsHandler for LocalFsHandler {
         Some(())
     }
 
-    fn ls(&self, path: &str) -> Option<Vec<String>> {
+    fn ls(&mut self, path: &str) -> Option<Vec<String>> {
         let file_table = self.read_file_table();
         let entry = file_table.get(path, TableItem::Directory)?;
         if let PathResult::Directory(dir) = entry {
@@ -119,7 +127,7 @@ impl FsHandler for LocalFsHandler {
     }
 
     /// Copy a file
-    fn cp(&self, from: &str, to: &str) -> Option<()> {
+    fn cp(&mut self, from: &str, to: &str) -> Option<()> {
         let file_table = self.read_file_table();
         let entry = file_table.get(from, TableItem::File)?;
         if let PathResult::File(file) = entry {
@@ -137,7 +145,7 @@ impl FsHandler for LocalFsHandler {
     }
 
     /// Move a file
-    fn mv(&self, from: &str, to: &str) -> Option<()> {
+    fn mv(&mut self, from: &str, to: &str) -> Option<()> {
         let mut file_table = self.read_file_table();
         let entry = file_table.get(from, TableItem::File)?;
         if let PathResult::File(file) = entry {
@@ -154,18 +162,18 @@ impl FsHandler for LocalFsHandler {
         None
     }
 
-    fn exists(&self, path: &str) -> bool {
+    fn exists(&mut self, path: &str) -> bool {
         let file_table = self.read_file_table();
         file_table.get(path, TableItem::File).is_some()
             || file_table.get(path, TableItem::Directory).is_some()
     }
 
-    fn is_dir(&self, path: &str) -> bool {
+    fn is_dir(&mut self, path: &str) -> bool {
         let file_table = self.read_file_table();
         file_table.get(path, TableItem::Directory).is_some()
     }
 
-    fn is_file(&self, path: &str) -> bool {
+    fn is_file(&mut self, path: &str) -> bool {
         let file_table = self.read_file_table();
         file_table.get(path, TableItem::File).is_some()
     }

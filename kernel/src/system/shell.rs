@@ -155,12 +155,6 @@ impl Displayable for SystemShell {
             .map(|line| format!("<div class='output'>{}</div>", line))
             .collect::<String>();
 
-        // Insert a `|` at the cursor position
-        // let command_displayed = format!(
-        //     "{}<span class='cursor'>|</span>{}",
-        //     &shell.current_command()[..shell.cursor_position],
-        //     &shell.current_command()[shell.cursor_position..]
-        // );
         // Create the input display elements
         let input_display = document.create_element("div").unwrap();
         let input_element = document.create_element("input").unwrap();
@@ -172,8 +166,7 @@ impl Displayable for SystemShell {
         input_element
             .set_attribute("value", &shell.current_command())
             .unwrap();
-
-        input_element.focus().unwrap();
+        // Set the cursor position
         input_element
             .set_selection_range(shell.cursor_position as u32, shell.cursor_position as u32);
 

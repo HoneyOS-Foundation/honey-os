@@ -3,6 +3,7 @@ use fshandler::FsHandler;
 pub mod filetable;
 pub mod fshandler;
 pub mod localfs;
+pub mod ramfs;
 pub mod tests;
 
 /// Filesystem manager
@@ -19,6 +20,11 @@ impl FsManager {
     /// Get the root filesystem handler
     pub fn root(&self) -> &dyn FsHandler {
         &*self.root
+    }
+
+    /// Get the root filesystem handler
+    pub fn root_mut(&mut self) -> &mut dyn FsHandler {
+        &mut *self.root
     }
 }
 
@@ -42,5 +48,7 @@ pub fn normalize_path(path: &str) -> String {
         .filter(|p| !p.is_empty())
         .collect::<Vec<_>>();
     let new_parts = new_parts.iter().map(|p| p.to_string()).collect::<Vec<_>>();
-    new_parts.join("/")
+    let mut new_parts = new_parts.join("/");
+    new_parts.insert(0, '/');
+    new_parts
 }
