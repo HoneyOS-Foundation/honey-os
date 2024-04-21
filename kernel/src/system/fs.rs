@@ -1,4 +1,4 @@
-use honeyos_fs::{localfs::LocalFsHandler, ramfs::RamFsHandler, FsManager};
+use honeyos_fs::{ramfs::RamFsHandler, FsManager};
 use std::sync::{Arc, Mutex, Once};
 
 /// The filesystem manager of the OS

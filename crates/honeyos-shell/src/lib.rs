@@ -6,10 +6,7 @@ use std::sync::{Arc, Mutex};
 use honeyos_fs::FsManager;
 use stdout::StdOut;
 
-use self::parse::ParsedCommand;
-
 /// The interactive shell of the OS
-#[derive(Clone)]
 pub struct Shell {
     // The unique ID of the shell
     id: usize,
@@ -30,6 +27,7 @@ pub struct Shell {
 
     // A reference to the file system manager
     fs_manager: Arc<Mutex<FsManager>>,
+
     // The current directory
     current_directory: String,
 }
@@ -79,195 +77,16 @@ impl Shell {
             self.current_command()
         ));
 
-        // Split the command by `&&` to handle multiple commands
-        let commands = self.current_command.split("&&").collect::<Vec<_>>();
-        let commands = commands
-            .iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<String>>();
-
-        // Process each command
-        for command in commands {
-            self.process_command(&command);
-        }
+        // Process the command
+        let command = self.current_command().to_string();
+        self.process_command(&command);
 
         // Clear the current command
         self.current_command.clear();
     }
 
     /// Process a single command
-    pub fn process_command(&mut self, command: &str) {
-        let command_parsed = ParsedCommand::parse(command);
-
-        // TODO: In the future each command will be a separate wasm module executed by the wasmer-vm.
-        // For now, we will just handle the clear and echo commands
-
-        if command_parsed.command == "help" {
-            self.stdout
-                .writeln("help clear echo reboot ls cd touch mkdir rm rmdir cp mv write cat pwd");
-        }
-        // The clear command
-        else if command_parsed.command == "clear" {
-            self.stdout.clear();
-        }
-        // The echo command
-        else if command_parsed.command == "echo" {
-            self.stdout.writeln(&command_parsed.args.join(" "));
-        }
-        // The reboot command
-        else if command_parsed.command == "reboot" {
-            web_sys::window().unwrap().location().reload().unwrap();
-        }
-        // The ls command
-        else if command_parsed.command == "ls" {
-            let mut fs_manager = self.fs_manager.lock().unwrap();
-            let files = fs_manager.root_mut().ls(&self.current_directory);
-            if let Some(files) = files {
-                for file in files {
-                    self.stdout.writeln(&file);
-                }
-            }
-        }
-        // The cd command
-        else if command_parsed.command == "cd" {
-            let mut fs_manager = self.fs_manager.lock().unwrap();
-            let new_directory = command_parsed.args.join(" ");
-            let full_path = if new_directory.starts_with('/') {
-                new_directory.clone()
-            } else {
-                if self.current_directory == "/" {
-                    format!("/{}", new_directory)
-                } else {
-                    format!("{}/{}", self.current_directory, new_directory)
-                }
-            };
-            if fs_manager.root_mut().is_dir(&full_path) {
-                self.current_directory = honeyos_fs::normalize_path(&full_path);
-            } else if fs_manager.root_mut().is_file(&full_path) {
-                self.stdout
-                    .writeln(format!("cd: {} Not a directory", full_path));
-            } else {
-                self.stdout
-                    .writeln(format!("cd: {} No such file or directory", full_path));
-            }
-        }
-        // The touch command
-        else if command_parsed.command == "touch" {
-            let mut fs_manager = self.fs_manager.lock().unwrap();
-            let file_name = command_parsed.args.join(" ");
-            let full_path = if file_name.starts_with('/') {
-                file_name.clone()
-            } else {
-                format!("{}/{}", self.current_directory, file_name)
-            };
-            fs_manager.root_mut().touch(&full_path);
-        }
-        // The mkdir command
-        else if command_parsed.command == "mkdir" {
-            let mut fs_manager = self.fs_manager.lock().unwrap();
-            let directory_name = command_parsed.args.join(" ");
-            let full_path = if directory_name.starts_with('/') {
-                directory_name.clone()
-            } else {
-                format!("{}/{}", self.current_directory, directory_name)
-            };
-            fs_manager.root_mut().mkdir(&full_path);
-        }
-        // The rm command
-        else if command_parsed.command == "rm" {
-            let mut fs_manager = self.fs_manager.lock().unwrap();
-            let file_name = command_parsed.args.join(" ");
-            let full_path = if file_name.starts_with('/') {
-                file_name.clone()
-            } else {
-                format!("{}/{}", self.current_directory, file_name)
-            };
-            if !fs_manager.root_mut().exists(&full_path) {
-                self.stdout.writeln(format!(
-                    "rm: cannot remove '{}': No such file or directory",
-                    full_path
-                ));
-            } else {
-                fs_manager.root_mut().rm(&full_path);
-            }
-        }
-        // The rmdir command
-        else if command_parsed.command == "rmdir" {
-            let mut fs_manager = self.fs_manager.lock().unwrap();
-            let directory_name = command_parsed.args.join(" ");
-            let full_path = if directory_name.starts_with('/') {
-                directory_name.clone()
-            } else {
-                format!("{}/{}", self.current_directory, directory_name)
-            };
-            fs_manager.root_mut().rmdir(&full_path);
-        }
-        // The cp command
-        else if command_parsed.command == "cp" {
-            let mut fs_manager = self.fs_manager.lock().unwrap();
-            let from = command_parsed.args[0].clone();
-            let to = command_parsed.args[1].clone();
-            fs_manager.root_mut().cp(&from, &to);
-        }
-        // The mv command
-        else if command_parsed.command == "mv" {
-            let mut fs_manager = self.fs_manager.lock().unwrap();
-            let from = command_parsed.args[0].clone();
-            let to = command_parsed.args[1].clone();
-            fs_manager.root_mut().mv(&from, &to);
-        }
-        // The write command
-        else if command_parsed.command == "write" {
-            let mut fs_manager = self.fs_manager.lock().unwrap();
-            log::info!("Command parsed: {:?}", command_parsed.args);
-            if command_parsed.args.len() > 1 {
-                let file_name = command_parsed.args[0].clone();
-                let content = command_parsed.args[1..].join(" ");
-                log::info!("Writing to file: {}", file_name);
-                let full_path = if file_name.starts_with('/') {
-                    file_name.clone()
-                } else {
-                    format!("{}/{}", self.current_directory, file_name)
-                };
-                // If the file does not exist, create it
-                if !fs_manager.root_mut().exists(&full_path) {
-                    log::info!("Creating file: {}", full_path);
-                    fs_manager.root_mut().touch(&full_path);
-                }
-                fs_manager.root_mut().write(&full_path, content.as_bytes());
-            } else {
-                self.stdout.writeln("write: missing file operand");
-            }
-        }
-        // The cat command
-        else if command_parsed.command == "cat" {
-            let mut fs_manager = self.fs_manager.lock().unwrap();
-            let file_name = command_parsed.args.join(" ");
-            let full_path = if file_name.starts_with('/') {
-                file_name.clone()
-            } else {
-                format!("{}/{}", self.current_directory, file_name)
-            };
-            let content = fs_manager.root_mut().read(&full_path);
-            if let Some(content) = content {
-                self.stdout.writeln(&*String::from_utf8_lossy(&content));
-            } else {
-                self.stdout
-                    .writeln(format!("cat: {}: No such file or directory", full_path));
-            }
-        }
-        // Print the current directory
-        else if command_parsed.command == "pwd" {
-            self.stdout.writeln(&self.current_directory);
-        }
-        // Handle an unknown command
-        else if command_parsed.command != "" {
-            self.stdout.writeln(format!(
-                "behash: `{}` command not found",
-                command_parsed.command
-            ));
-        }
-    }
+    pub fn process_command(&mut self, command: &str) {}
 
     /// Get the current command being entered
     pub fn current_command(&self) -> &str {

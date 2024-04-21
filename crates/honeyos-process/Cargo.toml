@@ -1,24 +1,22 @@
 [package]
-name = "honeyos_kernel"
+name = "honeyos-process"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-crate-type = ["cdylib"]
-
 [dependencies]
-honeyos-shell = { path = "../crates/honeyos-shell" }
-honeyos-fs = { path = "../crates/honeyos-fs" }
-honeyos-process = { path = "../crates/honeyos-process" }
-
-console_error_panic_hook = "0.1.7"
-console_log = { version = "1.0.0", features = ["color"] }
+hashbrown = "0.14.3"
 log = "0.4.21"
+serde-wasm-bindgen = "0.6.5"
+uuid = { version = "1.8.0", features = ["js", "v4"] }
 wasm-bindgen = "0.2.92"
 wasm-bindgen-futures = "0.4.42"
 wasm_thread = { version = "0.2.0", features = ["es_modules"] }
 wasmer = { version = "4.2.8", default-features = false, features = [
+    "js",
     "js-default",
+    "js-sys",
+    "js-serializable-module",
+    "wasm-bindgen",
 ] }
 web-sys = { version = "0.3.69", features = [
     "console",

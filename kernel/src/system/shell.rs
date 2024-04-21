@@ -97,7 +97,7 @@ pub fn update_system_shell() {
 /// The key callback for the keyboard event listener
 fn key_callback(event: KeyboardEvent) {
     let key = event.key();
-    let control = event.ctrl_key();
+    let _control = event.ctrl_key();
     let shell = SystemShell::get();
     let mut shell = shell.lock().unwrap();
     match key.as_str() {
@@ -168,7 +168,8 @@ impl Displayable for SystemShell {
             .unwrap();
         // Set the cursor position
         input_element
-            .set_selection_range(shell.cursor_position as u32, shell.cursor_position as u32);
+            .set_selection_range(shell.cursor_position as u32, shell.cursor_position as u32)
+            .unwrap();
 
         // Set the callback for the input element
         unsafe {

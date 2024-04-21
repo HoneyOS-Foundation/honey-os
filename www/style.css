@@ -3,7 +3,7 @@
 
 @font-face {
     font-family: 'IBM-VGA8x16';
-    src: url('www/fonts/IBM_VGA_8x16.woff') format('woff'), 
+    src: url('fonts/IBM_VGA_8x16.woff') format('woff'), 
 }
 
 body {
@@ -25,6 +25,8 @@ body {
     top: 0;
     left: 0;
 
+    font-family: "IBM-VGA8x16";
+
     overflow-y: scroll;
 
     background-color: #000000;
@@ -32,81 +34,6 @@ body {
 
     width: 100vw;
     height: 100vh;
-}
-
-.shell {
-    display: block; 
-
-    font-size: 16px;
-    font-family: "IBM-VGA8x16";
-
-    justify-content: left;
-    flex-direction: column;
-    color: #ffffff;
 
     white-space: pre-wrap;
-}
-
-.input-display {
-    display: flex; 
-    /* font-size: 20px; */
-    font-family: "IBM-VGA8x16";
-
-    justify-content: left ;
-    flex-direction: row;
-    color: #ffffff;
-
-    white-space: pre-wrap;
-    width: 100%;
-}
-
-.fs-display {
-    display: flex;
-    /* font-size: 20px; */
-    font-family: "IBM-VGA8x16";
-
-    justify-content: left;
-    /* flex-direction: column; */
-    color: #ffffff;
-
-    white-space: pre-wrap;
-    width: fit-content;
-}
-
-.command-input {
-    display: inline-block;
-    border: 0;
-    font-family: "IBM-VGA8x16";
-    font-size: 16px;
-
-    justify-content: left;
-    flex-direction: column;
-    color: #ffffff;
-    background-color: transparent;
-
-    white-space: pre-wrap;
-    width: 100%;
-}
-
-.command-input:focus {
-    outline: none;
-}
-
-.command-input::placeholder {
-    color: #ffffff;
-}
-
-.cursor {
-    color: #ffffff;
-    background-color: #000000;
-    animation: blink 1s infinite;
-}
-
-@keyframes blink {
-    0%, 100% {
-        color: #ffffff;
-    }
-    50% {
-        color: #000000;
-    }
 }

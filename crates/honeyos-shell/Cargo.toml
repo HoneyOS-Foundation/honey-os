@@ -9,13 +9,13 @@ log = "0.4.21"
 
 web-sys = { version = "0.3.69", features = [
     "console",
+    "Window",
     "Document",
     "Element",
     "Event",
     "HtmlElement",
     "HtmlButtonElement",
     "Node",
-    "Window",
     "Navigator",
     "Location",
     "Clipboard",

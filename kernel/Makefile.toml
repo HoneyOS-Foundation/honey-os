@@ -1,0 +1,14 @@
+[tasks.build]
+command = "cargo"
+args = ["build", "--release"]
+
+[tasks.pkg]
+dependencies = ["build"]
+command = "wasm-bindgen"
+args = [
+    "../target/wasm32-unknown-unknown/release/honeyos_kernel.wasm",
+    "--target",
+    "web",
+    "--out-dir",
+    "../pkg",
+]
