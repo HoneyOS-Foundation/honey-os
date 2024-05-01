@@ -1,8 +1,11 @@
+#![feature(async_closure)]
+
 use hashbrown::hash_map::{Values, ValuesMut};
 use process::Process;
 use uuid::Uuid;
-use web_sys::{Element, HtmlElement};
+use wasm_bindgen::{closure::Closure, JsValue};
 
+pub mod context;
 pub mod process;
 pub mod stdout;
 
@@ -21,20 +24,14 @@ impl ProcessManager {
     }
 
     /// Spawn a process
-    pub fn spawn(
-        &mut self,
-        wasm_bin: Vec<u8>,
-        title: Option<String>,
-        display: Option<Element>,
-    ) -> Uuid {
+    pub fn spawn(&mut self, wasm_bin: Vec<u8>, title: Option<String>) -> Uuid {
         let id = Uuid::new_v4();
         let title = if let Some(title) = title {
             title
         } else {
             id.to_string()
         };
-        self.processes
-            .insert(id, Process::new(wasm_bin, title, display));
+        self.processes.insert(id, Process::new(wasm_bin, title));
         id
     }
 
@@ -43,7 +40,6 @@ impl ProcessManager {
         let mut closed = Vec::new();
         for (id, process) in self.processes.iter_mut() {
             if !process.is_running() {
-                log::info!("Closed: {}", id);
                 closed.push(*id);
             }
         }

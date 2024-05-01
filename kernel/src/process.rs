@@ -2,35 +2,20 @@ use std::sync::{Arc, Mutex};
 
 use honeyos_process::ProcessManager;
 
-use crate::display::HeadDisplay;
-
 /// The system process manager
 static mut PROCESS_MANAGER: Option<Arc<Mutex<ProcessManager>>> = None;
 
+const TEST_WASM: &[u8] = include_bytes!("../../test/helloworld.wasm");
+
 /// Initialize the process manager
-pub fn init_process_manager(document: &web_sys::Document) {
+pub fn init_process_manager() {
     // SAFETY: Since the process manager is in a mutex, it is now thread-safe
     let mut process_manager = ProcessManager::new();
 
-    let process_element = document.create_element("div").unwrap();
-    process_element.set_id("pd-1");
-    let display = HeadDisplay::get().clone();
-    log::info!("Attempting to get display");
-    let display = display.lock().unwrap();
+    process_manager.spawn(TEST_WASM.to_vec(), Some("Helloworld! - 0".into()));
+    process_manager.spawn(TEST_WASM.to_vec(), Some("Helloworld! - 1".into()));
+    process_manager.spawn(TEST_WASM.to_vec(), Some("Helloworld! - 2".into()));
 
-    display.append(&process_element);
-    process_manager.spawn(
-        Vec::new(),
-        Some("Helloworld!".into()),
-        Some(process_element.clone()),
-    );
-    process_manager.spawn(
-        Vec::new(),
-        Some("Helloworld!".into()),
-        Some(process_element),
-    );
-
-    log::info!("Display fetched");
     unsafe { PROCESS_MANAGER = Some(Arc::new(Mutex::new(process_manager))) }
 }
 
