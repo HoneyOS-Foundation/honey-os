@@ -110,7 +110,6 @@ fn execution_loop(_time_stamp: f64) {
                 };
                 let html = display.root().inner_html();
                 display.root().set_inner_html(&format!("{}{}", html, out));
-                log::info!("{}", out);
             }
         };
     }

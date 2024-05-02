@@ -1,3 +1,4 @@
+use std::ffi::{CStr, CString};
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -6,10 +7,12 @@ use std::{
     time::Duration,
 };
 use uuid::Uuid;
+use wasm_bindgen::exports;
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use wasm_thread::JoinHandle;
-use web_sys::js_sys::{Function, Reflect, WebAssembly, JSON};
+use web_sys::js_sys::WebAssembly::Memory;
+use web_sys::js_sys::{Function, Object, Reflect, Uint8Array, WebAssembly, JSON};
 
 use crate::stdout::{self, ProcessStdOut};
 
@@ -97,17 +100,34 @@ async fn thread_executor(
     running: Arc<AtomicBool>,
     stdout: Arc<Mutex<ProcessStdOut>>,
 ) {
+    // The exports of the module
+    let exports: Arc<Mutex<Option<Object>>> = Arc::new(Mutex::new(None));
+    let exports_thread = exports.clone();
+
     // The println method:
     let stdout_f = stdout.clone();
-    let println_f = Closure::<dyn Fn(u32)>::new(move |i: u32| loop {
-        if let Ok(mut stdout) = stdout_f.try_lock() {
-            stdout.writeln(format!("{} - Hello, world! From wasm process: {}", i, id));
-            log::info!("{} - Hello, world! From wasm process: {}", i, id);
-            break;
-        }
-        wasm_thread::sleep(Duration::from_millis(100));
-    })
-    .into_js_value();
+    let println_f =
+        Closure::<dyn Fn(*const u8, usize)>::new(move |ptr: *const u8, len: usize| loop {
+            if let Ok(exports) = exports_thread.try_lock() {
+                if let Ok(mut stdout) = stdout_f.try_lock() {
+                    let exports = exports.as_ref().unwrap();
+                    let memory = Reflect::get(&exports, &"memory".into())
+                        .unwrap()
+                        .dyn_into::<WebAssembly::Memory>()
+                        .unwrap();
+                    let buffer = memory.buffer();
+                    let bytes = Uint8Array::new(&buffer);
+                    let str = bytes.slice(ptr as u32, ptr as u32 + len as u32);
+                    let str = str.to_vec();
+
+                    let string = String::from_utf8_lossy(&str);
+                    log::info!("{}: {}", id, string);
+                    stdout.writeln(string);
+                    break;
+                }
+            }
+        })
+        .into_js_value();
 
     let imports = JSON::parse("{}").unwrap();
     Reflect::set(&imports, &"println".into(), &println_f).unwrap();
@@ -125,11 +145,14 @@ async fn thread_executor(
         .unwrap();
 
     // The entrypoint is the _start method
-    let exports = instance.exports();
-    let entrypoint: Function = Reflect::get(exports.as_ref(), &"_start".into())
+    let mut exports = exports.lock().unwrap();
+    *exports = Some(instance.exports());
+    let entrypoint: Function = Reflect::get(exports.as_ref().unwrap(), &"_start".into())
         .expect("Could not execute binary, no entrypoint named `_start` foind")
         .dyn_into()
         .expect("Could not execute binary, Entrypoint `_start` must be a function");
+
+    drop(exports);
 
     entrypoint
         .call0(&JsValue::undefined())
