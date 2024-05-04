@@ -5,4 +5,6 @@ members = [
     "crates/honeyos-shell",
     "crates/honeyos-fs",
     "crates/honeyos-process",
+    "bootloader",
+    "hapi", "hapi-proc", "crates/honeyos-display",
 ]

@@ -2,13 +2,35 @@
 command = "cargo"
 args = ["build", "--release"]
 
-[tasks.pkg]
+[tasks.bindgen]
 dependencies = ["build"]
 command = "wasm-bindgen"
 args = [
-    "../target/wasm32-unknown-unknown/release/honeyos_kernel.wasm",
+    "../target/wasm32-unknown-unknown/release/kernel.wasm",
     "--target",
     "web",
     "--out-dir",
     "../pkg",
 ]
+
+[tasks.copy_bootloader]
+linux_alias = "copy_bootloader_unix"
+mac_alias = "copy_bootloader_unix"
+windows_alias = "copy_bootloader_windows"
+
+[tasks.copy_bootloader_unix]
+command = "cp"
+args = [
+    "../target/wasm32-unknown-unknown/release/bootloader.wasm",
+    "../pkg/boot.wasm",
+]
+
+[tasks.copy_bootloader_windows]
+command = "copy"
+args = [
+    "../target/wasm32-unknown-unknown/release/bootloader.wasm",
+    "../pkg/boot.wasm",
+]
+
+[tasks.pkg]
+dependencies = ["bindgen", "copy_bootloader"]

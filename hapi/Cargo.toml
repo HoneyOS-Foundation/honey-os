@@ -1,0 +1,7 @@
+[package]
+name = "hapi"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hapi-proc = { path = "../hapi-proc" }

@@ -28,6 +28,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'text/html')
             self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
             self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+            self.send_header("Cross-Origin-Resource-Policy", "cross-origin")
             self.end_headers()
             self.wfile.write(html.encode('utf-8'))
         else:
@@ -36,12 +37,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
 
 
+def pkg_bootloader():
+    """ Build and package the bootloader """
+    os.system(
+        "cd bootloader && cargo build --release --target wasm32-unknown-unknown")
+
+
 def pkg_kernel():
     """ Build the kernel """
     os.system("cd kernel && cargo make pkg")
 
 
-def copy_www():
+def pkg_www():
     # Copy www to pkg
     new_dir = PKG_DIR_PATH + "/" + WWW_DIR_PATH
     if os.path.exists(new_dir):
@@ -49,9 +56,15 @@ def copy_www():
     shutil.copytree(WWW_DIR_PATH, new_dir)
 
 
-def main():
+def package():
+    """ Package the os """
+    pkg_bootloader()
     pkg_kernel()
-    copy_www()
+    pkg_www()
+
+
+def main():
+    package()
     httpd = http.server.ThreadingHTTPServer((HOST, PORT), Handler)
     print(f'Serving at http://{HOST}:{PORT}')
     httpd.serve_forever()

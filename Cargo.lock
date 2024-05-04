@@ -42,6 +42,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f538837af36e6f6a9be0faa67f9a314f8119e4e4b5867c6ab40ed60360142519"
 
 [[package]]
+name = "arc-swap"
+version = "1.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
+
+[[package]]
 name = "async-channel"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -235,6 +241,13 @@ dependencies = [
  "futures-io",
  "futures-lite 2.3.0",
  "piper",
+]
+
+[[package]]
+name = "bootloader"
+version = "0.1.0"
+dependencies = [
+ "hapi",
 ]
 
 [[package]]
@@ -513,10 +526,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "hapi"
+version = "0.1.0"
+dependencies = [
+ "hapi-proc",
+]
+
+[[package]]
+name = "hapi-proc"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "hashbrown"
-version = "0.14.3"
+version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
+checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 dependencies = [
  "ahash",
  "allocator-api2",
@@ -528,6 +556,17 @@ name = "hermit-abi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
+
+[[package]]
+name = "honeyos-display"
+version = "0.1.0"
+dependencies = [
+ "hashbrown",
+ "honeyos-process",
+ "log",
+ "uuid",
+ "web-sys",
+]
 
 [[package]]
 name = "honeyos-fs"
@@ -548,6 +587,7 @@ name = "honeyos-process"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "arc-swap",
  "futures",
  "hashbrown",
  "log",
@@ -566,22 +606,6 @@ version = "0.1.0"
 dependencies = [
  "honeyos-fs",
  "log",
- "web-sys",
-]
-
-[[package]]
-name = "honeyos_kernel"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "console_log",
- "honeyos-fs",
- "honeyos-process",
- "honeyos-shell",
- "log",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm_thread 0.2.0",
  "web-sys",
 ]
 
@@ -618,6 +642,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29c15563dc2726973df627357ce0c9ddddbea194836909d655df6a75d2cf296d"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "kernel"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "console_error_panic_hook",
+ "console_log",
+ "honeyos-display",
+ "honeyos-fs",
+ "honeyos-process",
+ "honeyos-shell",
+ "log",
+ "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm_thread 0.2.0",
+ "web-sys",
 ]
 
 [[package]]
@@ -748,9 +791,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.79"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e835ff2298f5721608eb1a980ecaee1aef2c132bf95ecc026a11b7bf3c01c02e"
+checksum = "3d1597b0c024618f09a9c3b8655b7e430397a36d23fdafec26d6965e9eec3eba"
 dependencies = [
  "unicode-ident",
 ]
@@ -877,9 +920,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.58"
+version = "2.0.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44cfb93f38070beee36b3fef7d4f5a16f27751d94b187b666a5cc5e9b0d30687"
+checksum = "909518bc7b1c9b779f1bbf07f2929d35af9f0f37e47c6e9ef7f9dddc1e1821f3"
 dependencies = [
  "proc-macro2",
  "quote",

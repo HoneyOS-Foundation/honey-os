@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.82"
+arc-swap = "1.7.1"
 futures = "0.3.30"
 hashbrown = "0.14.3"
 log = "0.4.21"
@@ -30,4 +31,5 @@ web-sys = { version = "0.3.69", features = [
     "Location",
     "Clipboard",
     "KeyboardEvent",
+    'Worker',
 ] }

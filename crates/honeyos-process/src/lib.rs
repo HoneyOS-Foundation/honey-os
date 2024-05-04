@@ -1,24 +1,28 @@
 #![feature(async_closure)]
 
+use api::ApiBuilderFn;
 use hashbrown::hash_map::{Values, ValuesMut};
 use process::Process;
 use uuid::Uuid;
-use wasm_bindgen::{closure::Closure, JsValue};
 
+pub mod api;
 pub mod context;
+pub mod memory;
 pub mod process;
 pub mod stdout;
 
 /// A manager for the seperate processes in honeyos
 #[derive(Debug)]
 pub struct ProcessManager {
+    api_builder: ApiBuilderFn,
     processes: hashbrown::HashMap<Uuid, Process>,
 }
 
 impl ProcessManager {
     /// Create the process manager
-    pub fn new() -> Self {
+    pub fn new(api_builder: ApiBuilderFn) -> Self {
         Self {
+            api_builder,
             processes: Default::default(),
         }
     }
@@ -31,7 +35,8 @@ impl ProcessManager {
         } else {
             id.to_string()
         };
-        self.processes.insert(id, Process::new(wasm_bin, title));
+        self.processes
+            .insert(id, Process::new(id, wasm_bin, title, self.api_builder));
         id
     }
 

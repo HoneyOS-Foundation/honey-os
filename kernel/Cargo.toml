@@ -1,5 +1,5 @@
 [package]
-name = "honeyos_kernel"
+name = "kernel"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 honeyos-shell = { path = "../crates/honeyos-shell" }
 honeyos-fs = { path = "../crates/honeyos-fs" }
 honeyos-process = { path = "../crates/honeyos-process" }
+honeyos-display = { path = "../crates/honeyos-display" }
 
 console_error_panic_hook = "0.1.7"
 console_log = { version = "1.0.0", features = ["color"] }
@@ -31,4 +32,13 @@ web-sys = { version = "0.3.69", features = [
     "Location",
     "Clipboard",
     "KeyboardEvent",
+    'Headers',
+    "Blob",
+    'Request',
+    'RequestInit',
+    'RequestMode',
+    'Response',
+    "FileReader",
 ] }
+anyhow = "1.0.82"
+uuid = { version = "1.8.0", features = ["js", "v4"] }

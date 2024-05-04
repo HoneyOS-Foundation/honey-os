@@ -1,0 +1,17 @@
+[package]
+name = "honeyos-display"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hashbrown = "0.14.5"
+honeyos-process = { path = "../honeyos-process" }
+log = "0.4.21"
+uuid = { version = "1.8.0", features = ["js", "v4"] }
+web-sys = { version = "0.3.69", features = [
+    "console",
+    "Document",
+    "Element",
+    "Event",
+    "HtmlElement",
+] }
