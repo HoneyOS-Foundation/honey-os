@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 #[derive(Debug)]
 pub enum DisplayError {
     NotRegistered,
+    CharLimitReached,
 }
 
 /// The display for the process
@@ -16,6 +17,21 @@ impl Display {
         if result == -1 {
             return Err(DisplayError::NotRegistered);
         }
+        Ok(())
+    }
+
+    /// Set the text on the display's text buffer
+    pub fn set_text(&mut self, text: impl Into<String>) -> Result<(), DisplayError> {
+        let text: String = text.into();
+        if text.len() > u32::MAX as usize {
+            return Err(DisplayError::CharLimitReached);
+        }
+
+        let result = unsafe { crate::ffi::hapi_display_set_text(text.as_ptr(), text.len() as u32) };
+        if result == -1 {
+            return Err(DisplayError::NotRegistered);
+        }
+
         Ok(())
     }
 }
@@ -48,6 +64,9 @@ impl std::fmt::Display for DisplayError {
         match self {
             DisplayError::NotRegistered => {
                 writeln!(f, "The current process does not have a display registered")
+            }
+            DisplayError::CharLimitReached => {
+                writeln!(f, "Due too the limitations of wasm32, the length of the string must not exceed the 32-bit integer limit")
             }
         }
     }

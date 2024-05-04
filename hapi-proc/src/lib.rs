@@ -1,11 +1,16 @@
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, ItemFn};
+use quote::{quote, ToTokens};
+use syn::{parse_macro_input, token::Default, ItemFn, ReturnType};
 
 /// Indicates the method as an entrypoint
 #[proc_macro_attribute]
 pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
     let entrypoint = parse_macro_input!(item as ItemFn);
+
+    let function_call = match entrypoint.sig.output {
+        ReturnType::Default => quote! {main();},
+        _ => quote! {main().unwrap();},
+    };
     quote! {
         #[no_mangle]
         pub extern "C" fn _start() {
@@ -17,7 +22,7 @@ pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
             }));
 
 
-            main();
+            #function_call
         }
     }
     .into()
