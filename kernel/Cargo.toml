@@ -39,6 +39,7 @@ web-sys = { version = "0.3.69", features = [
     'RequestMode',
     'Response',
     "FileReader",
+    "Performance",
 ] }
 anyhow = "1.0.82"
 uuid = { version = "1.8.0", features = ["js", "v4"] }

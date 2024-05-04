@@ -2,6 +2,7 @@
 //! These methods need to be registered beforehand.
 //! This is done by a callback that gets called everytime a process gets initialized.
 pub mod display;
+pub mod time;
 
 use std::sync::Arc;
 
@@ -11,13 +12,14 @@ use honeyos_process::{
 };
 use wasm_bindgen::closure::Closure;
 
-use self::display::register_display_api;
+use self::{display::register_display_api, time::register_time_api};
 
 /// Register the api.
 /// This gets called for every process that gets initialized
 pub fn register_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuilder) {
     register_stdout_api(ctx.clone(), builder);
     register_display_api(ctx.clone(), builder);
+    register_time_api(ctx.clone(), builder);
 }
 
 /// Register the stdout api

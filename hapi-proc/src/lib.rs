@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
-use syn::{parse_macro_input, token::Default, ItemFn, ReturnType};
+use quote::quote;
+use syn::{parse_macro_input, ItemFn, ReturnType};
 
 /// Indicates the method as an entrypoint
 #[proc_macro_attribute]
@@ -20,7 +20,6 @@ pub fn main(_: TokenStream, item: TokenStream) -> TokenStream {
                 let message = info.to_string();
                 hapi::println!("{}", message);
             }));
-
 
             #function_call
         }

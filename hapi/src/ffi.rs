@@ -22,4 +22,8 @@ extern "C" {
     /// Set the text in the displays text-mode buffer.
     /// Returns -1 if no display is registered.
     pub fn hapi_display_set_text(ptr: *const u8, len: u32) -> i32;
+
+    /// ------  Time  ------
+    /// Get the time in seconds since the start of the process
+    pub fn hapi_time_since_startup() -> f64;
 }
