@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use honeyos_display::{DisplayMode, DisplayServer};
-use honeyos_process::api::{ApiModuleBuilder, ApiModuleCtx};
+use honeyos_process::{
+    api::{ApiModuleBuilder, ApiModuleCtx},
+    ProcessManager,
+};
 use wasm_bindgen::closure::Closure;
-
-use crate::process::process_manager;
 
 /// Register the display api
 pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuilder) {
@@ -50,11 +51,8 @@ pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
             };
 
             // Get stdout from the process manager
-            let process_manager = process_manager();
-            let Ok(mut process_manager) = process_manager.try_lock() else {
-                continue;
-            };
-            let process = process_manager.get_mut(ctx_f.pid()).unwrap();
+            let mut process_manager = ProcessManager::blocking_get();
+            let process = process_manager.process_mut(ctx_f.pid()).unwrap();
             let stdout = process.stdout_mut();
             // Sync stdout
             stdout.sync();

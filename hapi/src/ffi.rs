@@ -1,5 +1,13 @@
 #[link(wasm_import_module = "hapi")]
 extern "C" {
+    /// ------ JS Console ------
+    /// Logs a string to the js console as info
+    pub fn hapi_js_console_log_info(ptr: *const u8, len: u32);
+    /// Logs a string to the js console as a warning
+    pub fn hapi_js_console_log_warn(ptr: *const u8, len: u32);
+    /// Logs a string to the js console as an error
+    pub fn hapi_js_console_log_error(ptr: *const u8, len: u32);
+
     /// ------  Stdout  ------
     /// Clear honeyos's stdout
     pub fn hapi_stdout_clear();

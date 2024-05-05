@@ -17,9 +17,52 @@ use self::{display::register_display_api, time::register_time_api};
 /// Register the api.
 /// This gets called for every process that gets initialized
 pub fn register_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuilder) {
+    register_js_console_api(ctx.clone(), builder);
     register_stdout_api(ctx.clone(), builder);
     register_display_api(ctx.clone(), builder);
     register_time_api(ctx.clone(), builder);
+}
+
+/// Register the js-console api
+fn register_js_console_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuilder) {
+    // hapi_js_console_log_info
+    // Logs a string to the js console as info
+    let ctx_f = ctx.clone();
+    builder.register(
+        "hapi_js_console_log_info",
+        Closure::<dyn Fn(*const u8, u32)>::new(move |ptr, len| {
+            let string = ctx_f.memory().read(ptr as u32, len as u32);
+            let string = String::from_utf8_lossy(&string).to_string();
+            log::info!("PID: {} - {}", ctx_f.pid(), string);
+        })
+        .into_js_value(),
+    );
+
+    // hapi_js_console_log_warn
+    // Logs a string to the js console as a warning
+    let ctx_f = ctx.clone();
+    builder.register(
+        "hapi_js_console_log_warn",
+        Closure::<dyn Fn(*const u8, u32)>::new(move |ptr, len| {
+            let string = ctx_f.memory().read(ptr as u32, len as u32);
+            let string = String::from_utf8_lossy(&string).to_string();
+            log::warn!("PID: {} - {}", ctx_f.pid(), string);
+        })
+        .into_js_value(),
+    );
+
+    // hapi_js_console_log_error
+    // Logs a string to the js console as an error
+    let ctx_f = ctx.clone();
+    builder.register(
+        "hapi_js_console_log_error",
+        Closure::<dyn Fn(*const u8, u32)>::new(move |ptr, len| {
+            let string = ctx_f.memory().read(ptr as u32, len as u32);
+            let string = String::from_utf8_lossy(&string).to_string();
+            log::error!("PID: {} - {}", ctx_f.pid(), string);
+        })
+        .into_js_value(),
+    );
 }
 
 /// Register the stdout api

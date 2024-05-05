@@ -1,9 +1,10 @@
 pub mod api;
-pub mod process;
-pub mod system;
+pub mod boot;
 
-use crate::{process::init_process_manager, system::fs::init_fs_manager};
+use anyhow::anyhow;
 use honeyos_display::DisplayServer;
+use honeyos_fs::FsManager;
+use honeyos_process::ProcessManager;
 use wasm_bindgen::prelude::{wasm_bindgen, Closure, JsCast};
 
 /// The kernel entrypoint
@@ -12,17 +13,20 @@ async fn main() {
     console_log::init_with_level(log::Level::Info).unwrap();
     set_panic_hook();
 
-    let window = web_sys::window().unwrap();
+    let window = web_sys::window()
+        .ok_or(anyhow!(
+            "Failed to get window. Kernel must be executed in main thread."
+        ))
+        .unwrap();
 
-    // Initialize the display server
+    // Initialize kernel systems
     DisplayServer::init_once();
+    FsManager::init_once();
+    ProcessManager::init_once(api::register_api);
 
-    // Initialize the filesystem manager
-    init_fs_manager();
-    // Initialize the process manager
-    init_process_manager(&window).await.unwrap();
+    // Request the boot excutable and execute it once fetched
+    boot::request_boot_executable(&window).await.unwrap();
 
-    // Start the execution loop
     execution_loop(0.0);
 }
 

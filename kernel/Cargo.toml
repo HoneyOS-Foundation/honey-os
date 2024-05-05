@@ -13,7 +13,7 @@ honeyos-process = { path = "../crates/honeyos-process" }
 honeyos-display = { path = "../crates/honeyos-display" }
 
 console_error_panic_hook = "0.1.7"
-console_log = { version = "1.0.0", features = ["color"] }
+console_log = { version = "1.0.0" }
 log = "0.4.21"
 wasm-bindgen = "0.2.92"
 wasm-bindgen-futures = "0.4.42"

@@ -1,7 +1,12 @@
 #![feature(async_closure)]
 
+use std::sync::{Arc, Mutex, MutexGuard, Once};
+
 use api::ApiBuilderFn;
-use hashbrown::hash_map::{Values, ValuesMut};
+use hashbrown::{
+    hash_map::{Values, ValuesMut},
+    HashMap,
+};
 use process::Process;
 use uuid::Uuid;
 
@@ -11,19 +16,50 @@ pub mod memory;
 pub mod process;
 pub mod stdout;
 
+static mut PROCESS_MANAGER: Option<Arc<Mutex<ProcessManager>>> = None;
+
 /// A manager for the seperate processes in honeyos
 #[derive(Debug)]
 pub struct ProcessManager {
     api_builder: ApiBuilderFn,
-    processes: hashbrown::HashMap<Uuid, Process>,
+    processes: HashMap<Uuid, Process>,
 }
 
 impl ProcessManager {
-    /// Create the process manager
-    pub fn new(api_builder: ApiBuilderFn) -> Self {
-        Self {
-            api_builder,
-            processes: Default::default(),
+    /// Initialize the process manager.
+    /// Should only be called once.
+    pub fn init_once(api_builder: ApiBuilderFn) {
+        static SET_HOOK: Once = Once::new();
+        SET_HOOK.call_once(|| unsafe {
+            PROCESS_MANAGER = Some(Arc::new(Mutex::new(ProcessManager {
+                api_builder,
+                processes: HashMap::new(),
+            })));
+        });
+    }
+
+    /// Get the static instance
+    pub fn get<'a>() -> Option<MutexGuard<'a, ProcessManager>> {
+        let pm = unsafe {
+            PROCESS_MANAGER
+                .as_ref()
+                .expect("Process manager has not been initialized")
+        };
+        pm.try_lock().ok()
+    }
+
+    /// Get the static instance.
+    /// Blocks until locked.
+    pub fn blocking_get<'a>() -> MutexGuard<'a, Self> {
+        let pm = unsafe {
+            PROCESS_MANAGER
+                .as_ref()
+                .expect("Display server not initialized")
+        };
+        loop {
+            if let Ok(pm) = pm.try_lock() {
+                return pm;
+            }
         }
     }
 
@@ -64,12 +100,12 @@ impl ProcessManager {
     }
 
     /// Get a process
-    pub fn get(&self, id: Uuid) -> Option<&Process> {
+    pub fn process(&self, id: Uuid) -> Option<&Process> {
         self.processes.get(&id)
     }
 
     /// Get a process
-    pub fn get_mut(&mut self, id: Uuid) -> Option<&mut Process> {
+    pub fn process_mut(&mut self, id: Uuid) -> Option<&mut Process> {
         self.processes.get_mut(&id)
     }
 }

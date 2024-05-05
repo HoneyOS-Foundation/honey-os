@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex, MutexGuard, Once};
+
 use fshandler::FsHandler;
 
 pub mod filetable;
@@ -6,25 +8,56 @@ pub mod localfs;
 pub mod ramfs;
 pub mod tests;
 
+static mut FS_MANAGER: Option<Arc<Mutex<FsManager>>> = None;
+
 /// Filesystem manager
 pub struct FsManager {
-    root: Box<dyn FsHandler>,
+    root: Option<Box<dyn FsHandler>>,
 }
 
 impl FsManager {
-    /// Create a new filesystem manager
-    pub fn new(root: Box<dyn FsHandler>) -> Self {
-        Self { root }
+    /// Initialize the file manager
+    pub fn init_once() {
+        static SET_HOOK: Once = Once::new();
+        SET_HOOK.call_once(|| unsafe {
+            FS_MANAGER = Some(Arc::new(Mutex::new(FsManager { root: None })))
+        });
+    }
+
+    /// Get the static instance
+    pub fn get<'a>() -> Option<MutexGuard<'a, FsManager>> {
+        let fs = unsafe {
+            FS_MANAGER
+                .as_ref()
+                .expect("File system manager not handled")
+        };
+        fs.try_lock().ok()
+    }
+
+    /// Get the static instance.
+    /// Blocks until locked.
+    pub fn blocking_get<'a>() -> MutexGuard<'a, FsManager> {
+        let fs = unsafe {
+            FS_MANAGER
+                .as_ref()
+                .expect("File system manager not handled")
+        };
+        loop {
+            let Ok(fs) = fs.try_lock() else {
+                continue;
+            };
+            return fs;
+        }
     }
 
     /// Get the root filesystem handler
     pub fn root(&self) -> &dyn FsHandler {
-        &*self.root
+        self.root.as_deref().unwrap()
     }
 
     /// Get the root filesystem handler
     pub fn root_mut(&mut self) -> &mut dyn FsHandler {
-        &mut *self.root
+        self.root.as_deref_mut().unwrap()
     }
 }
 

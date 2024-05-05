@@ -8,4 +8,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = "1.0.82"
-hapi = { path = "../hapi" }
+hapi = { path = "../hapi", features = ["logger"] }
