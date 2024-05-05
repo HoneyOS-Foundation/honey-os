@@ -602,15 +602,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "honeyos-shell"
-version = "0.1.0"
-dependencies = [
- "honeyos-fs",
- "log",
- "web-sys",
-]
-
-[[package]]
 name = "instant"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -655,7 +646,6 @@ dependencies = [
  "honeyos-display",
  "honeyos-fs",
  "honeyos-process",
- "honeyos-shell",
  "log",
  "uuid",
  "wasm-bindgen",

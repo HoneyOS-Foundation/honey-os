@@ -2,9 +2,10 @@
 resolver = "2"
 members = [
     "kernel",
-    "crates/honeyos-shell",
     "crates/honeyos-fs",
     "crates/honeyos-process",
     "bootloader",
-    "hapi", "hapi-proc", "crates/honeyos-display",
+    "hapi",
+    "hapi-proc",
+    "crates/honeyos-display",
 ]

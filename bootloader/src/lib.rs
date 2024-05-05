@@ -1,9 +1,5 @@
+use hapi::{display::DisplayServer, js_console::JsConsoleLogger};
 use std::time::Duration;
-
-use hapi::{
-    display::DisplayServer,
-    js_console::{log, JsConsoleLogger},
-};
 
 /// The greeting message of the OS
 const GREETING_MESSAGE: &str = r#"    

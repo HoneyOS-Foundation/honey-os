@@ -7,7 +7,6 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-honeyos-shell = { path = "../crates/honeyos-shell" }
 honeyos-fs = { path = "../crates/honeyos-fs" }
 honeyos-process = { path = "../crates/honeyos-process" }
 honeyos-display = { path = "../crates/honeyos-display" }
