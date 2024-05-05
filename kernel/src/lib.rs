@@ -13,21 +13,36 @@ async fn main() {
     console_log::init_with_level(log::Level::Info).unwrap();
     set_panic_hook();
 
-    let window = web_sys::window()
-        .ok_or(anyhow!(
-            "Failed to get window. Kernel must be executed in main thread."
-        ))
-        .unwrap();
-
     // Initialize kernel systems
     DisplayServer::init_once();
     FsManager::init_once();
     ProcessManager::init_once(api::register_api);
 
     // Request the boot excutable and execute it once fetched
+    let window = get_window().unwrap();
     boot::request_boot_executable(&window).await.unwrap();
 
-    execution_loop(0.0);
+    execution_loop(0.0).unwrap();
+}
+
+/// The main execution loop of the OS
+/// This function will be called repeatedly to execute the OS
+fn execution_loop(_time_stamp: f64) -> anyhow::Result<()> {
+    let window = get_window()?;
+
+    // Render the display server
+    if let Some(mut display_server) = DisplayServer::get() {
+        display_server.render();
+    }
+
+    window
+        .request_animation_frame(
+            &Closure::once_into_js(|t| execution_loop(t).unwrap())
+                .as_ref()
+                .unchecked_ref(),
+        )
+        .map_err(|e| anyhow!("Failed to request animation frame: {:?}", e))?;
+    Ok(())
 }
 
 /// The panic hook for the WASM module
@@ -44,25 +59,9 @@ fn set_panic_hook() {
     });
 }
 
-/// The main execution loop of the OS
-/// This function will be called repeatedly to execute the OS
-fn execution_loop(_time_stamp: f64) {
-    // The main execution loop of the OS
-    let window = web_sys::window().unwrap();
-
-    // Render the display server
-    if let Some(mut display_server) = DisplayServer::get() {
-        display_server.render();
-    }
-
-    // Schedule the next cycle
-    window
-        .request_animation_frame(
-            &Closure::once_into_js(move |time_stamp: f64| {
-                execution_loop(time_stamp);
-            })
-            .as_ref()
-            .unchecked_ref(),
-        )
-        .unwrap();
+/// Get the window
+fn get_window() -> anyhow::Result<web_sys::Window> {
+    web_sys::window().ok_or(anyhow!(
+        "Failed to get window. Kernel must be executed in main thread."
+    ))
 }
