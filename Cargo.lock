@@ -249,6 +249,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "hapi",
+ "wasm-bindgen",
+ "wasm_thread 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -529,6 +531,7 @@ dependencies = [
 name = "hapi"
 version = "0.1.0"
 dependencies = [
+ "futures",
  "hapi-proc",
  "log",
 ]
@@ -597,7 +600,7 @@ dependencies = [
  "uuid",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm_thread 0.3.0",
+ "wasm_thread 0.3.0 (git+https://github.com/adamgerhant/wasm_thread.git)",
  "web-sys",
 ]
 
@@ -1060,6 +1063,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a52fc987e67957cab58160d1ea273a2886972ef6f59c7fa0c02e9fe2c8e11706"
 dependencies = [
  "async-channel 1.9.0",
+ "futures",
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "wasm_thread"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22bc95de7e96023c115820c1b87504cdd316ed958d2dfb97dca502cc6e5772a1"
+dependencies = [
  "futures",
  "js-sys",
  "wasm-bindgen",

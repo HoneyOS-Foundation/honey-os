@@ -41,6 +41,8 @@ def pkg_bootloader():
     """ Build and package the bootloader """
     os.system(
         "cd bootloader && cargo build --release --target wasm32-unknown-unknown")
+    shutil.copyfile(
+        "target/wasm32-unknown-unknown/release/bootloader.wasm", "pkg/boot.wasm")
 
 
 def pkg_kernel():
@@ -58,6 +60,9 @@ def pkg_www():
 
 def package():
     """ Package the os """
+    if not os.path.exists("pkg"):
+        os.mkdir("pkg")
+
     pkg_bootloader()
     pkg_kernel()
     pkg_www()

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use honeyos_display::{DisplayMode, DisplayServer};
+use honeyos_display::{DisplayMode, DisplayServer, KeyBuffer};
 use honeyos_process::{
     api::{ApiModuleBuilder, ApiModuleCtx},
     ProcessManager,
@@ -80,6 +80,75 @@ pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
             let string = String::from_utf8_lossy(&string).to_string();
 
             display.text = string;
+            return 0;
+        })
+        .into_js_value(),
+    );
+
+    // hapi_display_get_key_buffer
+    // Get the key in the displays key buffer.
+    // Returns -1 if no display is registered, or if the key buffer is empty.
+    let ctx_f = ctx.clone();
+    builder.register(
+        "hapi_display_get_key_buffer",
+        Closure::<dyn Fn() -> i32>::new(move || loop {
+            let mut display_server = DisplayServer::blocking_get();
+            let Some(display) = display_server.display_mut(ctx_f.pid()) else {
+                return -1;
+            };
+            return display.keybuffer.key;
+        })
+        .into_js_value(),
+    );
+
+    // hapi_display_get_key_shift
+    // Whether or not the shift key is in the key buffer
+    // Returns -1 if no display is registered, or if the key buffer is empty.
+    let ctx_f = ctx.clone();
+    builder.register(
+        "hapi_display_get_key_shift",
+        Closure::<dyn Fn() -> i32>::new(move || loop {
+            let mut display_server = DisplayServer::blocking_get();
+            let Some(display) = display_server.display_mut(ctx_f.pid()) else {
+                return -1;
+            };
+            return display.keybuffer.shift as i32;
+        })
+        .into_js_value(),
+    );
+
+    // hapi_display_get_key_ctrl
+    // Whether or not the control key is in the key buffer
+    // Returns -1 if no display is registered, or if the key buffer is empty.
+    let ctx_f = ctx.clone();
+    builder.register(
+        "hapi_display_get_key_ctrl",
+        Closure::<dyn Fn() -> i32>::new(move || loop {
+            let mut display_server = DisplayServer::blocking_get();
+            let Some(display) = display_server.display_mut(ctx_f.pid()) else {
+                return -1;
+            };
+            return display.keybuffer.ctrl as i32;
+        })
+        .into_js_value(),
+    );
+
+    // hapi_display_clear_key
+    // Clears the key buffer of the display
+    // Returns -1 if no display is registered, or if the key buffer is empty.
+    let ctx_f = ctx.clone();
+    builder.register(
+        "hapi_display_clear_key",
+        Closure::<dyn Fn() -> i32>::new(move || loop {
+            let mut display_server = DisplayServer::blocking_get();
+            let Some(display) = display_server.display_mut(ctx_f.pid()) else {
+                return -1;
+            };
+            display.keybuffer = KeyBuffer {
+                key: -1,
+                shift: false,
+                ctrl: false,
+            };
             return 0;
         })
         .into_js_value(),

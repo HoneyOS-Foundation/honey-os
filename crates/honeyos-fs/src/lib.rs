@@ -1,7 +1,9 @@
 use std::sync::{Arc, Mutex, MutexGuard, Once};
 
 use fshandler::FsHandler;
+use hashbrown::HashMap;
 
+pub mod error;
 pub mod filetable;
 pub mod fshandler;
 pub mod localfs;
@@ -10,9 +12,21 @@ pub mod tests;
 
 static mut FS_MANAGER: Option<Arc<Mutex<FsManager>>> = None;
 
-/// Filesystem manager
+/// The label for a mounted file system
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[rustfmt::skip]
+pub enum FsLabel {
+    A,B,C,D,E,
+    F,G,H,I,J,
+    K,L,M,N,O,
+    P,Q,R,S,T,
+    U,V,W,X,Y,
+    Z,
+}
+
+/// Filesystem managers
 pub struct FsManager {
-    root: Option<Box<dyn FsHandler>>,
+    handlers: HashMap<FsLabel, Box<dyn FsHandler>>,
 }
 
 impl FsManager {
@@ -20,7 +34,9 @@ impl FsManager {
     pub fn init_once() {
         static SET_HOOK: Once = Once::new();
         SET_HOOK.call_once(|| unsafe {
-            FS_MANAGER = Some(Arc::new(Mutex::new(FsManager { root: None })))
+            FS_MANAGER = Some(Arc::new(Mutex::new(FsManager {
+                handlers: HashMap::new(),
+            })))
         });
     }
 
@@ -50,14 +66,11 @@ impl FsManager {
         }
     }
 
-    /// Get the root filesystem handler
-    pub fn root(&self) -> &dyn FsHandler {
-        self.root.as_deref().unwrap()
-    }
-
-    /// Get the root filesystem handler
-    pub fn root_mut(&mut self) -> &mut dyn FsHandler {
-        self.root.as_deref_mut().unwrap()
+    /// Register the file system
+    pub fn register_fs<T>(&mut self, fs: T)
+    where
+        T: FsHandler,
+    {
     }
 }
 

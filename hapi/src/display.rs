@@ -1,5 +1,7 @@
 use std::marker::PhantomData;
 
+use crate::util::keys::KeyCode;
+
 /// The errors for the display
 #[derive(Debug)]
 pub enum DisplayError {
@@ -8,6 +10,18 @@ pub enum DisplayError {
 
 /// The display for the process
 pub struct Display(PhantomData<()>);
+
+/// The display server for honeyos
+pub struct DisplayServer;
+
+/// The key buffer stored in the display
+#[derive(Debug)]
+pub struct KeyPress {
+    pub key: i32,
+    pub shift: bool,
+    pub ctrl: bool,
+    _phantom: PhantomData<()>,
+}
 
 impl Display {
     /// Push the process's stdout to the display's text buffer
@@ -29,10 +43,26 @@ impl Display {
 
         Ok(())
     }
-}
 
-/// The display server for honeyos
-pub struct DisplayServer;
+    /// Get the key from the the key buffer and clear it
+    pub fn key_buffer(&mut self) -> Option<KeyPress> {
+        let key = unsafe { crate::ffi::hapi_display_get_key_buffer() };
+        if key <= -1 {
+            return None;
+        }
+
+        let shift = unsafe { crate::ffi::hapi_display_get_key_shift() } != 0;
+        let ctrl = unsafe { crate::ffi::hapi_display_get_key_ctrl() } != 0;
+
+        unsafe { crate::ffi::hapi_display_clear_key() };
+        Some(KeyPress {
+            key,
+            shift,
+            ctrl,
+            _phantom: PhantomData,
+        })
+    }
+}
 
 impl DisplayServer {
     /// Register a display
@@ -49,6 +79,15 @@ impl DisplayServer {
             return Err(DisplayError::NotRegistered);
         }
         Ok(())
+    }
+}
+
+impl KeyPress {
+    /// Convert the key buffer to it's textual representation.
+    /// Return None if there is no textual representation for the key.
+    pub fn to_char(&self) -> Option<char> {
+        let code = KeyCode::from(self.key);
+        code.to_char(self.shift)
     }
 }
 

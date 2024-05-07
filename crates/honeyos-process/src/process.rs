@@ -100,11 +100,17 @@ async fn thread_executor(
     api_builder: ApiBuilderFn,
 ) -> anyhow::Result<()> {
     let memory = Arc::new(Memory::new()?);
+    let table = Arc::new(setup_table()?);
 
-    let api_ctx = Arc::new(ApiModuleCtx::new(id, memory.clone(), stdout.clone()));
+    let api_ctx = Arc::new(ApiModuleCtx::new(
+        id,
+        memory.clone(),
+        table.clone(),
+        stdout.clone(),
+    ));
     let api_module = ApiModuleCtx::js_from_fn(api_builder, api_ctx);
 
-    let environment = setup_environment(&memory)?;
+    let environment = setup_environment(&memory, &table)?;
     let imports = setup_imports(environment, api_module)?;
 
     let instance = init_binary(&wasm_bin, imports).await;
@@ -115,10 +121,26 @@ async fn thread_executor(
     Ok(())
 }
 
+/// Setup table
+fn setup_table() -> anyhow::Result<WebAssembly::Table> {
+    const INITIAL: u32 = 4;
+    const ELEMENT: &str = "anyfunc";
+
+    let table_desc = JSON::parse("{}").unwrap();
+    Reflect::set(&table_desc, &"initial".into(), &INITIAL.into())
+        .map_err(|e| anyhow!("Failed to setup table: {:?}", e))?;
+    Reflect::set(&table_desc, &"element".into(), &ELEMENT.into())
+        .map_err(|e| anyhow!("Failed to setup table: {:?}", e))?;
+    WebAssembly::Table::new(&table_desc.unchecked_into())
+        .map_err(|e| anyhow!("Failed to setup table: {:?}", e))
+}
+
 /// Setup the env
-fn setup_environment(memory: &Memory) -> anyhow::Result<JsValue> {
+fn setup_environment(memory: &Memory, table: &WebAssembly::Table) -> anyhow::Result<JsValue> {
     let env = JSON::parse("{}").unwrap();
     Reflect::set(&env, &"memory".into(), memory.inner())
+        .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
+    Reflect::set(&env, &"table".into(), &table)
         .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
     Ok(env)
 }

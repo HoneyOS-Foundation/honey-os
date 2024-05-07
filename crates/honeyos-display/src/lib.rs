@@ -2,7 +2,10 @@ use std::sync::{Arc, Mutex, MutexGuard, Once};
 
 use hashbrown::HashMap;
 use uuid::Uuid;
-use web_sys::{wasm_bindgen::JsCast, HtmlElement};
+use web_sys::{
+    wasm_bindgen::{closure::Closure, JsCast},
+    Document, HtmlElement, KeyboardEvent, Window,
+};
 
 /// The static instance of the display server
 static mut DISPLAY_SERVER: Option<Arc<Mutex<DisplayServer>>> = None;
@@ -19,6 +22,15 @@ pub enum DisplayMode {
 pub struct Display {
     pub text: String,
     pub mode: DisplayMode,
+    pub keybuffer: KeyBuffer,
+}
+
+/// The keybuffer registered to the display
+#[derive(Debug)]
+pub struct KeyBuffer {
+    pub key: i32,
+    pub shift: bool,
+    pub ctrl: bool,
 }
 
 /// The honeyos display server.
@@ -42,14 +54,8 @@ impl DisplayServer {
                 .expect("Failed to get window. Display server must be run in main thread");
             let document = window.document().unwrap();
 
-            let root = document.create_element("div").unwrap();
-            let root: HtmlElement = root.dyn_into().unwrap();
-            root.set_id("display");
-            document.body().unwrap().append_child(&root).unwrap();
-
-            let root = document.get_element_by_id("display").unwrap();
-            let root: HtmlElement = root.dyn_into().unwrap();
-            let root = Some(root);
+            let root = create_root_node(&document);
+            register_callbacks(&window);
 
             // Register a display at Uuid::nil for kernel rendering
             let mut displays = HashMap::new();
@@ -58,12 +64,17 @@ impl DisplayServer {
                 Display {
                     text: String::new(),
                     mode: DisplayMode::Text,
+                    keybuffer: KeyBuffer {
+                        key: -1,
+                        shift: false,
+                        ctrl: false,
+                    },
                 },
             );
 
             unsafe {
                 DISPLAY_SERVER = Some(Arc::new(Mutex::new(DisplayServer {
-                    root,
+                    root: Some(root),
                     current: Uuid::nil(),
                     displays,
                 })))
@@ -112,6 +123,11 @@ impl DisplayServer {
             process,
             Display {
                 text: String::new(),
+                keybuffer: KeyBuffer {
+                    key: -1,
+                    shift: false,
+                    ctrl: false,
+                },
                 mode,
             },
         );
@@ -170,14 +186,10 @@ fn html_escape(input: &str) -> String {
         .replace("'", "&#39;")
 }
 
-/// Transform the text with ASCII color codes to HTML code that renders those colors
+/// Transform the text with ASCII color codes to HTML code that renders those colors and styles
 fn text_to_terminal(input: &str) -> String {
-    let mut html = String::new();
-    let mut in_color = false;
-    let mut current_color = "".to_string();
-
     /// Map ASCII color codes to HTML color names
-    fn map_color(color_code: &str) -> &str {
+    fn map_color<'a>(color_code: &str) -> &str {
         let color_code = color_code.replace("[", "");
         let color_code = color_code.as_str();
         match color_code {
@@ -201,23 +213,84 @@ fn text_to_terminal(input: &str) -> String {
         }
     }
 
+    /// Map ASCII style codes to HTML style attributes
+    fn map_style<'a>(style_code: &str) -> &'a str {
+        let style_code = style_code.replace("[", "");
+        let style_code = style_code.as_str();
+        match style_code {
+            "0" => "font-weight:normal;text-decoration:none;",
+            "1" => "font-weight:bold;",
+            "4" => "text-decoration:underline;",
+            "7" => "filter:invert(100%);",
+            _ => "",
+        }
+    }
+
+    let mut html = String::new();
+    let mut in_escape = false;
+    let mut current_code = String::new();
+
     for c in input.chars() {
         match c {
             '\x1b' => {
-                in_color = true;
-                current_color.clear();
+                in_escape = true;
+                current_code.clear();
             }
-            'm' if in_color => {
-                in_color = false;
-                html.push_str(&format!(
-                    "<span style=\"color:{};\">",
-                    map_color(&current_color)
-                ));
+            'm' if in_escape => {
+                in_escape = false;
+                let mut code = map_style(&current_code);
+                if code.is_empty() {
+                    code = map_color(&current_code);
+                    if !code.is_empty() {
+                        html.push_str(&format!("<span style=\"color:{};\">", code));
+                    }
+                    continue;
+                }
+                html.push_str(&format!("<span style=\"{};\">", code));
             }
-            _ if in_color => current_color.push(c),
+            ' ' => html.push(c),
+            _ if in_escape => current_code.push(c),
             _ => html.push(c),
         }
     }
 
     html
+}
+
+/// Register callbacks
+fn register_callbacks(window: &Window) {
+    // Register the key callback
+    window
+        .add_event_listener_with_callback(
+            "keydown",
+            Closure::<dyn Fn(KeyboardEvent)>::new(|event: KeyboardEvent| loop {
+                event.prevent_default();
+                let Some(mut display_server) = DisplayServer::get() else {
+                    continue;
+                };
+                let pid = display_server.current;
+                let display = display_server.display_mut(pid).unwrap();
+                display.keybuffer = KeyBuffer {
+                    key: event.key_code() as i32,
+                    shift: event.shift_key(),
+                    ctrl: event.ctrl_key(),
+                };
+                break;
+            })
+            .into_js_value()
+            .unchecked_ref(),
+        )
+        .unwrap();
+}
+
+/// Create the root node
+fn create_root_node(document: &Document) -> HtmlElement {
+    let root = document.create_element("div").unwrap();
+    let root: HtmlElement = root.dyn_into().unwrap();
+    root.set_id("display");
+    document.body().unwrap().append_child(&root).unwrap();
+
+    let root = document.get_element_by_id("display").unwrap();
+    let root: HtmlElement = root.dyn_into().unwrap();
+    root
 }

@@ -36,4 +36,6 @@ body {
     height: 100vh;
 
     white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-all;
 }

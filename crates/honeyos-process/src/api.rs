@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use hashbrown::HashMap;
 use uuid::Uuid;
 use wasm_bindgen::JsValue;
-use web_sys::js_sys::{Reflect, JSON};
+use web_sys::js_sys::{Reflect, WebAssembly, JSON};
 
 use crate::{memory::Memory, stdout::StdoutMessage};
 
@@ -15,13 +15,20 @@ pub struct ApiModuleCtx {
     pid: Uuid,
     stdout: Arc<Mutex<Vec<StdoutMessage>>>,
     memory: Arc<Memory>,
+    table: Arc<WebAssembly::Table>,
 }
 
 impl ApiModuleCtx {
-    pub fn new(pid: Uuid, memory: Arc<Memory>, stdout: Arc<Mutex<Vec<StdoutMessage>>>) -> Self {
+    pub fn new(
+        pid: Uuid,
+        memory: Arc<Memory>,
+        table: Arc<WebAssembly::Table>,
+        stdout: Arc<Mutex<Vec<StdoutMessage>>>,
+    ) -> Self {
         Self {
             pid,
             memory,
+            table,
             stdout,
         }
     }
@@ -41,6 +48,11 @@ impl ApiModuleCtx {
     /// Get the memory of the wasm module
     pub fn memory(&self) -> Arc<Memory> {
         self.memory.clone()
+    }
+
+    /// Get the table
+    pub fn table(&self) -> Arc<WebAssembly::Table> {
+        self.table.clone()
     }
 
     /// Get the stdout messenger of the wasm module
