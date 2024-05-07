@@ -1,7 +1,10 @@
 //! The kernel exposes some methods and constants to the wasm processes in order to control the os.
 //! These methods need to be registered beforehand.
 //! This is done by a callback that gets called everytime a process gets initialized.
+pub mod browser;
 pub mod display;
+pub mod mem;
+pub mod process;
 pub mod time;
 
 use std::sync::Arc;
@@ -12,7 +15,10 @@ use honeyos_process::{
 };
 use wasm_bindgen::closure::Closure;
 
-use self::{display::register_display_api, time::register_time_api};
+use self::{
+    browser::register_browser_api, display::register_display_api, mem::register_mem_api,
+    process::register_process_api, time::register_time_api,
+};
 
 /// Register the api.
 /// This gets called for every process that gets initialized
@@ -21,6 +27,9 @@ pub fn register_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuilder) {
     register_stdout_api(ctx.clone(), builder);
     register_display_api(ctx.clone(), builder);
     register_time_api(ctx.clone(), builder);
+    register_process_api(ctx.clone(), builder);
+    register_browser_api(ctx.clone(), builder);
+    register_mem_api(ctx.clone(), builder)
 }
 
 /// Register the js-console api

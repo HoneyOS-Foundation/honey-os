@@ -1,3 +1,5 @@
+use std::os::raw::c_void;
+
 #[link(wasm_import_module = "hapi")]
 extern "C" {
     /// ------ JS Console ------
@@ -17,6 +19,21 @@ extern "C" {
     pub fn hapi_stdout_clear_line();
     /// Print a string to honeyos's stdout
     pub fn hapi_stdout_write(ptr: *const u8, len: u32);
+
+    /// ------  Process  ------
+
+    /// Write the pid to a char buffer. If the char buffer is less than 36-chars long it causes undefined behavior.
+    /// Returns the process id of the current process
+    pub fn hapi_process_get_pid() -> *const u8;
+
+    /// ------  Memory  ------
+
+    /// Allocate a block of memory and return it's pointer.
+    /// Return null if the memory allocation failed
+    pub fn hapi_mem_alloc(size: u32) -> *mut c_void;
+    /// Reallocate a block of memory and return the new pointer.
+    /// Return null if the memory allocation failed
+    pub fn hapi_mem_realloc(ptr: *mut c_void, size: u32) -> *mut c_void;
 
     /// ------  Display Server  ------
 
@@ -51,4 +68,13 @@ extern "C" {
 
     /// Get the time in seconds since the start of the process
     pub fn hapi_time_since_startup() -> f64;
+
+    /// ------  Browser ------
+    // Returns a pointer to the user agent.
+    // Returns NULL if failed allocate the string.
+    pub fn hapi_browser_user_agent() -> *const u8;
+    // Returns the length of the user agent string
+    pub fn hapi_browser_user_agent_length() -> u32;
+    // Returns whether the browser is online
+    pub fn hapi_browser_is_online() -> u32;
 }
