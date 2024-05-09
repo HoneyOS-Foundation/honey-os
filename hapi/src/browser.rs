@@ -1,15 +1,18 @@
+use std::ffi::CStr;
+
 /// Get the user agent of the browser
-pub fn user_agent<'a>() -> Option<&'a str> {
+pub fn user_agent<'a>() -> Option<String> {
     // # Safety
     // Since we check for failed allocations, there is no way to access unallocated memory.
     let ptr = unsafe { crate::ffi::hapi_browser_user_agent() };
-    let len = unsafe { crate::ffi::hapi_browser_user_agent_length() } as usize;
-
     if ptr == std::ptr::null() {
         return None;
     }
 
-    unsafe { std::str::from_utf8(std::slice::from_raw_parts(ptr, len)).ok() }
+    // # Safety
+    // Since we know for certain the string is null terminated, there is no way to access unallocated memory
+    let cstring = unsafe { CStr::from_ptr(ptr as *const i8) };
+    Some(cstring.to_string_lossy().to_string())
 }
 
 /// Return whether the browser is online

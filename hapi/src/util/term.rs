@@ -15,6 +15,18 @@ pub fn keypressed_to_string(keys: &[KeyPress]) -> String {
         let current_key = &keys[amount_processed];
         let current_code = KeyCode::from(current_key.key);
         match current_code {
+            KeyCode::Enter => {
+                if cursor < result.len() {
+                    if insert_mode {
+                        result.insert(cursor, '\n');
+                    } else {
+                        result[cursor] = '\n';
+                    }
+                } else {
+                    result.push('\n');
+                }
+                cursor += 1;
+            }
             KeyCode::Delete if current_key.shift => {
                 insert_mode = !insert_mode;
             }

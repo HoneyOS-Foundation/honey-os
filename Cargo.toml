@@ -7,5 +7,5 @@ members = [
     "bootloader",
     "hapi",
     "hapi-proc",
-    "crates/honeyos-display",
+    "crates/honeyos-display", "crates/honeyos-networking",
 ]

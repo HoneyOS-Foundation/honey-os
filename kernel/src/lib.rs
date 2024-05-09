@@ -4,6 +4,7 @@ pub mod boot;
 use anyhow::anyhow;
 use honeyos_display::DisplayServer;
 use honeyos_fs::FsManager;
+use honeyos_networking::NetworkingManager;
 use honeyos_process::ProcessManager;
 use wasm_bindgen::prelude::{wasm_bindgen, Closure, JsCast};
 
@@ -17,6 +18,7 @@ async fn main() {
     DisplayServer::init_once();
     FsManager::init_once();
     ProcessManager::init_once(api::register_api);
+    NetworkingManager::init_once();
 
     // Request the boot excutable and execute it once fetched
     let window = get_window().unwrap();

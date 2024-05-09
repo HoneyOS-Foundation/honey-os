@@ -1,8 +1,7 @@
-use std::sync::Arc;
+use std::{ffi::CString, sync::Arc};
 
 use honeyos_process::api::{ApiModuleBuilder, ApiModuleCtx};
 use wasm_bindgen::{closure::Closure, prelude::wasm_bindgen};
-use web_sys::Request;
 
 /// Gets returned to describe a file
 #[repr(C)]
@@ -22,13 +21,15 @@ pub fn register_browser_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
         .unwrap()
         .as_string()
         .unwrap();
-    let user_agent_len = user_agent.len() as u32;
+    let user_agent = CString::new(user_agent).unwrap();
+    let user_agent_bytes = user_agent.as_bytes();
+    let user_agent_len = user_agent_bytes.len() as u32;
     builder.register(
         "hapi_browser_user_agent",
         Closure::<dyn Fn() -> *const u8>::new(move || {
             let memory = ctx_f.memory();
             let Some(ptr) =
-                memory.alloc(user_agent.len() as u32 * std::mem::size_of::<char>() as u32)
+                memory.alloc(user_agent_len as u32 * std::mem::size_of::<char>() as u32)
             else {
                 return std::ptr::null();
             };
@@ -65,26 +66,4 @@ pub fn register_browser_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
     //     "hapi_browser_request_upload",
     //     Closure::<dyn Fn() -> *const u8>::new(move || 0 as *const u8).into_js_value(),
     // );[
-
-    // hapi_browser_fetch
-    // Fetch a file and return it's bytes.
-    // Blocks until the file is uploaded.
-    // let ctx_f = ctx.clone();
-    // builder.register(
-    //     "hapi_browser_fetch",
-    //     Closure::<dyn Fn(*const u8, u32) -> FileDescriptor>::new(
-    //         move |path: *const u8, path_len: u32| {
-    //             let memory = ctx_f.memory();
-    //             let path_bytes = memory.read(path as u32, path_len);
-    //             let path = String::from_utf8_lossy(&path_bytes);
-
-    //             let request = Request::new_with_str(&path).unwrap();
-    //             FileDescriptor {
-    //                 len: 0,
-    //                 ptr: std::ptr::null(),
-    //             }
-    //         },
-    //     )
-    //     .into_js_value(),
-    // );
 }

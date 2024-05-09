@@ -4,6 +4,7 @@
 pub mod browser;
 pub mod display;
 pub mod mem;
+pub mod network;
 pub mod process;
 pub mod time;
 

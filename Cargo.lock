@@ -588,6 +588,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "honeyos-networking"
+version = "0.1.0"
+dependencies = [
+ "hashbrown",
+ "uuid",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "honeyos-process"
 version = "0.1.0"
 dependencies = [
@@ -649,6 +659,7 @@ dependencies = [
  "console_log",
  "honeyos-display",
  "honeyos-fs",
+ "honeyos-networking",
  "honeyos-process",
  "log",
  "uuid",

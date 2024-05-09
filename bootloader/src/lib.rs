@@ -59,7 +59,7 @@ async fn main() -> anyhow::Result<()> {
 fn format_greeting() -> String {
     let temp = GREETING_MESSAGE.to_string();
     let temp = temp.replace("#online_log#", &hapi::browser::is_online().to_string());
-    let temp = temp.replace("#pid_log#", hapi::process::pid().unwrap());
-    let temp = temp.replace("#user_agent_log#", hapi::browser::user_agent().unwrap());
+    let temp = temp.replace("#pid_log#", &hapi::process::pid().unwrap());
+    let temp = temp.replace("#user_agent_log#", &hapi::browser::user_agent().unwrap());
     temp
 }

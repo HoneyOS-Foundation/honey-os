@@ -44,6 +44,33 @@ pub struct DisplayServer {
 }
 
 impl DisplayServer {
+    /// Get the static instance
+    pub fn get<'a>() -> Option<MutexGuard<'a, Self>> {
+        let display = unsafe {
+            DISPLAY_SERVER
+                .as_ref()
+                .expect("Display server not initialized")
+        };
+        display.try_lock().ok()
+    }
+
+    /// Get the static instance.
+    /// Blocks until locked.
+    pub fn blocking_get<'a>() -> MutexGuard<'a, Self> {
+        let display = unsafe {
+            DISPLAY_SERVER
+                .as_ref()
+                .expect("Display server not initialized")
+        };
+        loop {
+            if let Ok(display) = display.try_lock() {
+                return display;
+            }
+        }
+    }
+}
+
+impl DisplayServer {
     /// Initialize the display server.
     /// Setups up the html structure.
     /// Should only be called once.
@@ -80,31 +107,6 @@ impl DisplayServer {
                 })))
             }
         });
-    }
-
-    /// Get the static instance
-    pub fn get<'a>() -> Option<MutexGuard<'a, Self>> {
-        let display = unsafe {
-            DISPLAY_SERVER
-                .as_ref()
-                .expect("Display server not initialized")
-        };
-        display.try_lock().ok()
-    }
-
-    /// Get the static instance.
-    /// Blocks until locked.
-    pub fn blocking_get<'a>() -> MutexGuard<'a, Self> {
-        let display = unsafe {
-            DISPLAY_SERVER
-                .as_ref()
-                .expect("Display server not initialized")
-        };
-        loop {
-            if let Ok(display) = display.try_lock() {
-                return display;
-            }
-        }
     }
 
     /// Set the current process to be displayed

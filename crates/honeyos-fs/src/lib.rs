@@ -23,7 +23,6 @@ pub enum FsLabel {
     U,V,W,X,Y,
     Z,
 }
-
 /// Filesystem managers
 pub struct FsManager {
     handlers: HashMap<FsLabel, Box<dyn FsHandler>>,

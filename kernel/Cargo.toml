@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 honeyos-fs = { path = "../crates/honeyos-fs" }
 honeyos-process = { path = "../crates/honeyos-process" }
 honeyos-display = { path = "../crates/honeyos-display" }
+honeyos-networking = { path = "../crates/honeyos-networking" }
 
 console_error_panic_hook = "0.1.7"
 console_log = { version = "1.0.0" }

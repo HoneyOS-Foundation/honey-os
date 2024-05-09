@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{ffi::CString, sync::Arc};
 
 use honeyos_process::api::{ApiModuleBuilder, ApiModuleCtx};
 use wasm_bindgen::closure::Closure;
@@ -16,7 +16,9 @@ pub fn register_process_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
             let Some(ptr) = memory.alloc(pid.len() as u32) else {
                 return std::ptr::null();
             };
-            memory.write(ptr, &pid.as_bytes());
+
+            let cstring = CString::new(pid).unwrap();
+            memory.write(ptr, &cstring.as_bytes());
             ptr as *const u8
         })
         .into_js_value(),
