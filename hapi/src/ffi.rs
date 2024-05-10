@@ -16,6 +16,11 @@ extern "C" {
     pub fn hapi_stdout_write(ptr: *const u8, len: u32);
     /// Returns the process id of the current process
     pub fn hapi_process_get_pid() -> *const u8;
+    /// Spawn a wasm binary as a subprocess.
+    /// ### Returns
+    /// - The pid of the subprocess on success.
+    /// - NULL if the subprocess failed to spawn.
+    pub fn hapi_process_spawn_subprocess(bin: *const u8, bin_len: u32) -> *const u8;
     /// Allocate a block of memory and return it's pointer.
     /// ### Returns
     /// - The pointer to the block

@@ -41,9 +41,8 @@ async fn main() -> anyhow::Result<()> {
         RequestStatus::Success => {
             let data = request.data()?;
             let string = String::from_utf8_lossy(&data);
-
             display.set_text(format!(
-                "{}\n{}\nRequest Completed!\n\n{}",
+                "{}\n{}\nRequest Succeeded!\n{}\n",
                 greeting, COLOR_TEST, string
             ))?;
         }

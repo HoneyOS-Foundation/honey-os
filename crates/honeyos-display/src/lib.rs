@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex, MutexGuard, Once};
 
 use hashbrown::HashMap;
+use honeyos_process::ProcessManager;
 use uuid::Uuid;
 use web_sys::{
     wasm_bindgen::{closure::Closure, JsCast},
@@ -286,6 +287,7 @@ fn register_callbacks(window: &Window) {
             "keydown",
             Closure::<dyn Fn(KeyboardEvent)>::new(|event: KeyboardEvent| loop {
                 event.prevent_default();
+
                 let Some(mut display_server) = DisplayServer::get() else {
                     continue;
                 };

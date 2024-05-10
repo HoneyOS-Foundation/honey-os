@@ -14,6 +14,7 @@ pub mod api;
 pub mod context;
 pub mod memory;
 pub mod process;
+pub mod requirements;
 pub mod stdout;
 
 static mut PROCESS_MANAGER: Option<Arc<Mutex<ProcessManager>>> = None;

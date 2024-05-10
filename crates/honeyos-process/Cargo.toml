@@ -17,6 +17,7 @@ wasm-bindgen-futures = "0.4.42"
 wasm_thread = { git = "https://github.com/adamgerhant/wasm_thread.git", features = [
     "es_modules",
 ] }
+wasmparser = "0.207.0"
 web-sys = { version = "0.3.69", features = [
     "console",
     "Document",

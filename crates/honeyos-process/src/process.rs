@@ -12,6 +12,7 @@ use web_sys::js_sys::{Function, Reflect, WebAssembly, JSON};
 use crate::{
     api::{ApiBuilderFn, ApiModuleCtx},
     memory::Memory,
+    requirements::{self, WasmRequirements},
     stdout::{ProcessStdOut, StdoutMessage},
 };
 
@@ -51,9 +52,12 @@ impl Process {
             let wasm_bin = wasm_bin.clone();
             let running = running_thread.clone();
             let stdout = stdout_thread.clone();
-            thread_executor(id, wasm_bin, running, stdout, api_builder)
-                .await
-                .unwrap();
+            if let Err(e) =
+                thread_executor(id, wasm_bin, running.clone(), stdout, api_builder).await
+            {
+                log::error!("Failed to execute process {}: {}", id, e);
+                running.store(false, Ordering::Relaxed);
+            }
         });
 
         Self {
@@ -99,7 +103,13 @@ async fn thread_executor(
     stdout: Arc<Mutex<Vec<StdoutMessage>>>,
     api_builder: ApiBuilderFn,
 ) -> anyhow::Result<()> {
-    let memory = Arc::new(Memory::new()?);
+    let requirements = WasmRequirements::parse(&wasm_bin)?;
+
+    let memory = Arc::new(Memory::new(
+        requirements.initial_memory,
+        requirements.maximum_memory,
+        requirements.shared_memory,
+    )?);
     let table = Arc::new(setup_table()?);
 
     let api_ctx = Arc::new(ApiModuleCtx::new(
@@ -142,6 +152,8 @@ fn setup_environment(memory: &Memory, table: &WebAssembly::Table) -> anyhow::Res
         .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
     Reflect::set(&env, &"table".into(), &table)
         .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
+
+    setup_emscripten_environment(&env)?;
     Ok(env)
 }
 
@@ -152,7 +164,120 @@ fn setup_imports(environment: JsValue, api_module: JsValue) -> anyhow::Result<Js
         .map_err(|e| anyhow::anyhow!("Failed to setup imports: {:?}", e))?;
     Reflect::set(&imports_object, &"hapi".into(), &api_module)
         .map_err(|e| anyhow::anyhow!("Failed to setup imports: {:?}", e))?;
+
+    // This does nothing. But emscripten expects this to be there. This might be removed in the future
+    setup_emscripten_imports(&imports_object)?;
     Ok(imports_object)
+}
+
+/// Add dummy methods to the env for emscripten suppoort.
+/// These methods remain unimplemented as they are not needed, but emscripten still expects them
+fn setup_emscripten_environment(env: &JsValue) -> anyhow::Result<()> {
+    Reflect::set(
+        &env,
+        &"emscripten_notify_memory_growth".into(),
+        &Function::new_no_args("{}"),
+    )
+    .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
+    Reflect::set(
+        &env,
+        &"_emscripten_notify_mailbox_postmessage".into(),
+        &Function::new_no_args("{}"),
+    )
+    .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
+    Reflect::set(
+        &env,
+        &"emscripten_check_blocking_allowed".into(),
+        &Function::new_no_args("{}"),
+    )
+    .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
+    Reflect::set(
+        &env,
+        &"_emscripten_notify_mailbox_postmessage".into(),
+        &Function::new_no_args("{}"),
+    )
+    .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
+    Reflect::set(
+        &env,
+        &"_emscripten_receive_on_main_thread_js".into(),
+        &Function::new_no_args("{}"),
+    )
+    .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
+    Reflect::set(
+        &env,
+        &"__emscripten_init_main_thread_js".into(),
+        &Function::new_no_args("{}"),
+    )
+    .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
+    Reflect::set(
+        &env,
+        &"_emscripten_thread_mailbox_await".into(),
+        &Function::new_no_args("{}"),
+    )
+    .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
+    Reflect::set(
+        &env,
+        &"_emscripten_thread_set_strongref".into(),
+        &Function::new_no_args("{}"),
+    )
+    .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
+    Reflect::set(
+        &env,
+        &"emscripten_exit_with_live_runtime".into(),
+        &Function::new_no_args("{}"),
+    )
+    .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
+    Reflect::set(
+        &env,
+        &"__emscripten_thread_cleanup".into(),
+        &Function::new_no_args("{}"),
+    )
+    .map_err(|e| anyhow!("Failed to setup env: {:?}", e))?;
+
+    Ok(())
+}
+
+/// Add dummy methods to the import for emscripten suppoort.
+/// These methods remain unimplemented as they are not needed, but emscripten still expects them
+fn setup_emscripten_imports(imports_object: &JsValue) -> anyhow::Result<()> {
+    let wasi_snapshot_preview1 = JSON::parse("{}").unwrap();
+    Reflect::set(
+        &wasi_snapshot_preview1,
+        &"proc_exit".into(),
+        &Function::new_no_args("{}").into(),
+    )
+    .map_err(|e| anyhow::anyhow!("Failed to setup imports: {:?}", e))?;
+    Reflect::set(
+        &wasi_snapshot_preview1,
+        &"clock_time_get".into(),
+        &Function::new_no_args("{}").into(),
+    )
+    .map_err(|e| anyhow::anyhow!("Failed to setup imports: {:?}", e))?;
+    Reflect::set(
+        &wasi_snapshot_preview1,
+        &"fd_close".into(),
+        &Function::new_no_args("{}").into(),
+    )
+    .map_err(|e| anyhow::anyhow!("Failed to setup imports: {:?}", e))?;
+    Reflect::set(
+        &wasi_snapshot_preview1,
+        &"fd_write".into(),
+        &Function::new_no_args("{}").into(),
+    )
+    .map_err(|e| anyhow::anyhow!("Failed to setup imports: {:?}", e))?;
+    Reflect::set(
+        &wasi_snapshot_preview1,
+        &"fd_seek".into(),
+        &Function::new_no_args("{}").into(),
+    )
+    .map_err(|e| anyhow::anyhow!("Failed to setup imports: {:?}", e))?;
+    Reflect::set(
+        &imports_object,
+        &"wasi_snapshot_preview1".into(),
+        &wasi_snapshot_preview1,
+    )
+    .map_err(|e| anyhow::anyhow!("Failed to setup imports: {:?}", e))?;
+    Ok(())
 }
 
 /// Initialize the wasm instance

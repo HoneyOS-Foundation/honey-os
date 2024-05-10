@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{ffi::CString, sync::Arc};
 
 use honeyos_display::{DisplayMode, DisplayServer, KeyBuffer};
 use honeyos_process::{
@@ -77,14 +77,16 @@ pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
     builder.register(
         "hapi_display_set_text",
         Closure::<dyn Fn(*const u8, u32) -> i32>::new(move |ptr: *const u8, len: u32| loop {
-            let mut display_server = DisplayServer::blocking_get();
+            let mut display_server: std::sync::MutexGuard<DisplayServer> =
+                DisplayServer::blocking_get();
             let Some(display) = display_server.display_mut(ctx_f.pid()) else {
                 return -1;
             };
 
-            let string = ctx_f.memory().read(ptr as u32, len);
-            let string = String::from_utf8_lossy(&string).to_string();
-
+            let memory = ctx_f.memory();
+            log::info!("{:?}", memory.read(ptr as u32, 1000));
+            let buf = memory.read(ptr as u32, len);
+            let string = String::from_utf8_lossy(&buf).to_string();
             display.set_text(string);
             return 0;
         })

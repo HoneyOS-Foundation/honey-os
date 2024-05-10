@@ -2,7 +2,6 @@ use anyhow::anyhow;
 use wasm_bindgen::JsCast;
 use web_sys::js_sys::{Reflect, SharedArrayBuffer, Uint8Array, WebAssembly, JSON};
 
-const INITIAL_MEMORY: u32 = 18;
 const MAXIMUM_MEMORY: u32 = 16384;
 
 /// (64Kib) The size of one wasm page as specified in the spec:
@@ -12,20 +11,23 @@ const PAGE_SIZE: u32 = 65536;
 /// The sandboxed memory of a process
 #[derive(Debug)]
 pub struct Memory {
+    maximum: Option<u32>,
     inner: WebAssembly::Memory,
 }
 
 impl Memory {
-    pub fn new() -> anyhow::Result<Self> {
+    pub fn new(initial: u32, maximum: Option<u32>, shared: bool) -> anyhow::Result<Self> {
         let memory_desc = JSON::parse("{}").unwrap();
-        Reflect::set(&memory_desc, &"initial".into(), &INITIAL_MEMORY.into()).unwrap();
-        Reflect::set(&memory_desc, &"maximum".into(), &MAXIMUM_MEMORY.into()).unwrap();
-        Reflect::set(&memory_desc, &"shared".into(), &true.into()).unwrap();
+        Reflect::set(&memory_desc, &"initial".into(), &initial.into()).unwrap();
+        if let Some(maximum_memory) = maximum {
+            Reflect::set(&memory_desc, &"maximum".into(), &maximum_memory.into()).unwrap();
+        }
+        Reflect::set(&memory_desc, &"shared".into(), &shared.into()).unwrap();
 
         let inner = WebAssembly::Memory::new(memory_desc.unchecked_ref())
             .map_err(|e| anyhow!("Failed to allocate memory for process: {:?}", e))?;
 
-        Ok(Self { inner })
+        Ok(Self { inner, maximum })
     }
 
     /// Read from a certain block of memory
@@ -50,12 +52,14 @@ impl Memory {
 
         let new_size = current_size + size;
 
-        if new_size / PAGE_SIZE > MAXIMUM_MEMORY {
-            log::warn!(
-                "Process attempted to allocate more than the maximum of {} pages of ram",
-                MAXIMUM_MEMORY
-            );
-            return None;
+        if let Some(maximum) = self.maximum {
+            if new_size / PAGE_SIZE > maximum {
+                log::warn!(
+                    "Process attempted to allocate more than the maximum of {} pages of ram",
+                    maximum
+                );
+                return None;
+            }
         }
 
         let allocated_ptr = current_size;
