@@ -62,7 +62,7 @@ pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
             stdout.sync();
 
             // Send stdout to the display
-            display.text = stdout.buffer();
+            display.set_text(stdout.buffer());
             return 0;
         })
         .into_js_value(),
@@ -85,7 +85,7 @@ pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
             let string = ctx_f.memory().read(ptr as u32, len);
             let string = String::from_utf8_lossy(&string).to_string();
 
-            display.text = string;
+            display.set_text(string);
             return 0;
         })
         .into_js_value(),

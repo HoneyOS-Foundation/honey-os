@@ -32,6 +32,13 @@ async fn main() {
 fn execution_loop(_time_stamp: f64) -> anyhow::Result<()> {
     let window = get_window()?;
 
+    // Update the network manager
+    if let Some(mut network_manager) = NetworkingManager::get() {
+        if let Err(e) = network_manager.update() {
+            log::error!("Failed to complete network request: {}", e);
+        }
+    }
+
     // Render the display server
     if let Some(mut display_server) = DisplayServer::get() {
         display_server.render();

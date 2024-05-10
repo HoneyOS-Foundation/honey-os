@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex, MutexGuard, Once};
 
 use crate::error::Error;
 use hashbrown::HashMap;
-use request::{Request, RequestMethod, RequestMode, RequestStatus};
+use request::{Request, RequestMethod, RequestMode, RequestStatus, ScheduledRequest};
 use uuid::Uuid;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{
@@ -20,6 +20,7 @@ static mut NETWORKING_MANAGER: Option<Arc<Mutex<NetworkingManager>>> = None;
 /// The networking manager for the honeyos kernel
 #[derive(Debug)]
 pub struct NetworkingManager {
+    scheduled: HashMap<Uuid, ScheduledRequest>,
     requests: HashMap<Uuid, Request>,
 }
 
@@ -57,6 +58,7 @@ impl NetworkingManager {
         static SET_HOOK: Once = Once::new();
         SET_HOOK.call_once(|| unsafe {
             NETWORKING_MANAGER = Some(Arc::new(Mutex::new(NetworkingManager {
+                scheduled: HashMap::new(),
                 requests: HashMap::new(),
             })))
         });
@@ -70,59 +72,30 @@ impl NetworkingManager {
         method: RequestMethod,
         mode: RequestMode,
         headers: impl Into<String>,
-    ) -> Result<Uuid, Error> {
+    ) -> Uuid {
         let url: String = url.into();
         let headers: String = headers.into();
 
         let id = Uuid::new_v4();
-        self.requests.insert(
+
+        self.scheduled.insert(
             id,
-            Request {
-                data: Vec::new(),
-                status: RequestStatus::Processing,
+            ScheduledRequest {
+                url,
+                method,
+                mode,
+                headers,
             },
         );
-
-        // Setup the request
-        let headers = JSON::parse(&headers).map_err(|e| Error::HeaderParseFailure(e))?;
-        let mut request_init = RequestInit::new();
-        request_init.mode(mode.into());
-        request_init.method(&method.to_string());
-        request_init.headers(&headers);
-
-        // Create the request. The request will update the status in the NetworkManager when complete
-        let window = web_sys::window().unwrap();
-        let request = web_sys::Request::new_with_str_and_init(&url, &request_init)
-            .map_err(|e| Error::RequestInitFailure(e))?;
-        wasm_bindgen_futures::spawn_local(async move {
-            JsFuture::from(
-                window
-                    .fetch_with_request(&request)
-                    .then(&Closure::new(move |response: JsValue| {
-                        wasm_bindgen_futures::spawn_local(async move {
-                            let response = response.dyn_into().unwrap();
-                            let blob = extract_blob(response).await.unwrap();
-                            read_and_update(id, blob);
-                        })
-                    }))
-                    .catch(&Closure::new(move |_| {
-                        let mut networking_manager = NetworkingManager::blocking_get();
-                        let Some(request) = networking_manager.requests.get_mut(&id) else {
-                            return;
-                        };
-                        request.status = RequestStatus::Fail;
-                    })),
-            )
-            .await
-            .unwrap();
-        });
-
-        Ok(id)
+        id
     }
 
     /// Return the status of a request.
     /// Returns none if the request does not exist.
     pub fn status(&self, id: Uuid) -> Option<RequestStatus> {
+        if self.scheduled.contains_key(&id) {
+            return Some(RequestStatus::Pending);
+        }
         let request = self.requests.get(&id)?;
         Some(request.status)
     }
@@ -145,6 +118,73 @@ impl NetworkingManager {
     /// Do nothing if it does not exist
     pub fn remove(&mut self, id: Uuid) {
         self.requests.remove(&id);
+    }
+
+    /// Update the network manager
+    pub fn update(&mut self) -> Result<(), Error> {
+        for (id, scheduled) in self.scheduled.clone().iter() {
+            self.process_request(*id, scheduled)?;
+            self.scheduled.remove(id);
+        }
+
+        Ok(())
+    }
+
+    // Proess a request
+    fn process_request(&mut self, id: Uuid, scheduled: &ScheduledRequest) -> Result<(), Error> {
+        self.requests.insert(
+            id,
+            Request {
+                data: Vec::new(),
+                status: RequestStatus::Processing,
+            },
+        );
+
+        // Setup the request
+        let headers = JSON::parse(&scheduled.headers).map_err(|e| Error::HeaderParseFailure(e))?;
+        let mut request_init = RequestInit::new();
+        request_init.mode(scheduled.mode.into());
+        request_init.method(&scheduled.method.to_string());
+        request_init.headers(&headers);
+
+        // Create the request. The request will update the status in the NetworkManager when complete
+        let window = web_sys::window().unwrap();
+        let request = web_sys::Request::new_with_str_and_init(&scheduled.url, &request_init)
+            .map_err(|e| Error::RequestInitFailure(e))?;
+        wasm_bindgen_futures::spawn_local(async move {
+            JsFuture::from(
+                window
+                    .fetch_with_request(&request)
+                    .then(&Closure::new(move |response: JsValue| {
+                        wasm_bindgen_futures::spawn_local(async move {
+                            let response: Response = response.dyn_into().unwrap();
+
+                            if !response.ok() {
+                                let mut networking_manager = NetworkingManager::blocking_get();
+                                let Some(request) = networking_manager.requests.get_mut(&id) else {
+                                    return;
+                                };
+                                request.status = RequestStatus::Fail;
+                                return;
+                            }
+
+                            let blob = extract_blob(response).await.unwrap();
+                            read_and_update(id, blob);
+                        })
+                    }))
+                    .catch(&Closure::new(move |_| {
+                        let mut networking_manager = NetworkingManager::blocking_get();
+                        let Some(request) = networking_manager.requests.get_mut(&id) else {
+                            return;
+                        };
+                        request.status = RequestStatus::Fail;
+                    })),
+            )
+            .await
+            .unwrap();
+        });
+
+        Ok(())
     }
 }
 

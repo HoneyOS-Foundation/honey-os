@@ -41,10 +41,7 @@ pub fn register_network_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
 
                 // Setup request
                 let mut network_manager = NetworkingManager::blocking_get();
-                let Ok(id) = network_manager.request(url, method, RequestMode::NoCors, headers)
-                else {
-                    return std::ptr::null();
-                };
+                let id = network_manager.request(url, method, RequestMode::Cors, headers);
 
                 // Write id to memory
                 let id = id.to_string();
@@ -91,10 +88,7 @@ pub fn register_network_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
 
                 // Setup request
                 let mut network_manager = NetworkingManager::blocking_get();
-                let Ok(id) = network_manager.request(url, method, RequestMode::SameOrigin, headers)
-                else {
-                    return std::ptr::null();
-                };
+                let id = network_manager.request(url, method, RequestMode::SameOrigin, headers);
 
                 // Write id to memory
                 let id = id.to_string();
@@ -117,6 +111,7 @@ pub fn register_network_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
     // - `0`if the request is pending.
     // - `1`if the request succeeded.
     // - `2`if the request failed.
+    // - `3`if the request is still pending
     let ctx_f = ctx.clone();
     builder.register(
         "hapi_network_request_status",
@@ -135,6 +130,7 @@ pub fn register_network_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
                 RequestStatus::Processing => 0,
                 RequestStatus::Success => 1,
                 RequestStatus::Fail => 2,
+                RequestStatus::Pending => 3,
             }
         })
         .into_js_value(),
@@ -190,8 +186,28 @@ pub fn register_network_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
             let Some(ptr) = memory.alloc(data.len() as u32) else {
                 return std::ptr::null();
             };
+            memory.write(ptr, &data);
 
             ptr as *const u8
+        })
+        .into_js_value(),
+    );
+
+    // hapi_network_request_drop
+    // Drop the request from memory.
+    // Does nothing if the request does not exist
+    let ctx_f = ctx.clone();
+    builder.register(
+        "hapi_network_request_drop",
+        Closure::<dyn Fn(*const u8, u32)>::new(move |id, id_len| {
+            let memory = ctx_f.memory();
+            let id = String::from_utf8_lossy(&memory.read(id as u32, id_len)).to_string();
+            let Ok(id) = Uuid::from_str(&id) else {
+                return;
+            };
+
+            let mut networking_manager = NetworkingManager::blocking_get();
+            networking_manager.remove(id);
         })
         .into_js_value(),
     );

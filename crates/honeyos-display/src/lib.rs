@@ -20,9 +20,10 @@ pub enum DisplayMode {
 /// A display for a process
 #[derive(Debug)]
 pub struct Display {
-    pub text: String,
+    text: String,
     pub mode: DisplayMode,
     pub keybuffer: KeyBuffer,
+    pub updated: bool,
 }
 
 /// The keybuffer registered to the display
@@ -96,6 +97,7 @@ impl DisplayServer {
                         shift: false,
                         ctrl: false,
                     },
+                    updated: false,
                 },
             );
 
@@ -110,8 +112,11 @@ impl DisplayServer {
     }
 
     /// Set the current process to be displayed
-    pub fn set_current(&mut self, id: Uuid) {
-        self.current = id
+    pub fn set_current(&mut self, id: Uuid) -> Option<()> {
+        self.current = id;
+        let display = self.display_mut(id)?;
+        display.updated = true;
+        Some(())
     }
 
     /// Register a display
@@ -131,6 +136,7 @@ impl DisplayServer {
                     ctrl: false,
                 },
                 mode,
+                updated: false,
             },
         );
     }
@@ -158,7 +164,12 @@ impl DisplayServer {
 
     /// Update the display server and render to the screen
     pub fn render(&mut self) {
-        let display = self.displays.get(&self.current).unwrap();
+        let display = self.displays.get_mut(&self.current).unwrap();
+
+        if !display.updated {
+            return;
+        }
+        display.updated = false;
 
         let root = self
             .root
@@ -174,6 +185,14 @@ impl DisplayServer {
             }
             DisplayMode::FrameBuffer => unimplemented!("Only text mode is currently supported"),
         }
+    }
+}
+
+impl Display {
+    /// Set the text mode buffer
+    pub fn set_text(&mut self, text: impl Into<String>) {
+        self.text = text.into();
+        self.updated = true;
     }
 }
 

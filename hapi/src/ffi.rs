@@ -119,6 +119,7 @@ extern "C" {
     /// - `0`if the request is pending.
     /// - `1`if the request succeeded.
     /// - `2`if the request failed.
+    /// - `3`if the request is still pending
     pub fn hapi_network_request_status(id: *const u8, id_len: u32) -> i32;
     /// Check the lenght of the data in bytes.
     /// ### Returns
@@ -132,4 +133,7 @@ extern "C" {
     /// - NULL if the request has failed or is still pending,
     /// - NULL if the memory allocation failed.
     pub fn hapi_network_request_data(id: *const u8, id_len: u32) -> *const u8;
+    /// Drop the request from memory.
+    /// Does nothing if the request does not exist.
+    pub fn hapi_network_request_drop(id: *const u8, id_len: u32);
 }

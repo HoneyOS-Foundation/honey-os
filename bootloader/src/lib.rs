@@ -1,5 +1,10 @@
-use hapi::{display::DisplayServer, js_console::JsConsoleLogger, util::term::keypressed_to_string};
-use std::time::Duration;
+use std::ffi::CString;
+
+use hapi::{
+    display::DisplayServer,
+    js_console::JsConsoleLogger,
+    network::{Request, RequestMethod, RequestStatus},
+};
 
 /// The greeting message of the OS
 const GREETING_MESSAGE: &str = "    
@@ -25,34 +30,32 @@ async fn main() -> anyhow::Result<()> {
     let mut display = DisplayServer::register();
     DisplayServer::claim(&display)?;
 
-    let mut keyspressed = Vec::new();
-
-    unsafe {
-        let num = hapi::mem::alloc::<u32>();
-        *num = 10;
-        log::info!("ptr: {} value: {}", num as u32, *num);
-    }
-
     display.set_text(format!(
-        "{}\n{}\n{}",
-        greeting,
-        COLOR_TEST,
-        keypressed_to_string(&keyspressed)
+        "{}\n{}\nWaiting for data request...",
+        greeting, COLOR_TEST,
     ))?;
 
-    loop {
-        if let Some(key) = display.key_buffer() {
-            keyspressed.push(key);
+    let request = Request::new("kernel.js", RequestMethod::Get, "{}")?;
+    let status = request.wait()?;
+    match status {
+        RequestStatus::Success => {
+            let data = request.data()?;
+            let string = String::from_utf8_lossy(&data);
 
             display.set_text(format!(
-                "{}\n{}\n{}",
-                greeting,
-                COLOR_TEST,
-                keypressed_to_string(&keyspressed)
+                "{}\n{}\nRequest Completed!\n\n{}",
+                greeting, COLOR_TEST, string
             ))?;
         }
-        std::thread::sleep(Duration::from_secs_f32(1.0 / 60.0));
+        _ => {
+            display.set_text(format!(
+                "{}\n{}\n\x1b[91mRequest Failed!\x1b[97m\n",
+                greeting, COLOR_TEST,
+            ))?;
+        }
     }
+
+    Ok(())
 }
 
 /// Format the greeting message

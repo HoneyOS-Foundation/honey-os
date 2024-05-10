@@ -1,3 +1,12 @@
+/// A scheduled request
+#[derive(Debug, Clone)]
+pub struct ScheduledRequest {
+    pub url: String,
+    pub method: RequestMethod,
+    pub mode: RequestMode,
+    pub headers: String,
+}
+
 /// Represents a request stored in the network manager
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -8,9 +17,10 @@ pub struct Request {
 /// The status of a request
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RequestStatus {
-    Processing,
-    Success,
-    Fail,
+    Processing = 0,
+    Success = 1,
+    Fail = 2,
+    Pending = 3,
 }
 
 /// The request methods
@@ -94,6 +104,17 @@ impl Into<web_sys::RequestMode> for RequestMode {
             RequestMode::Navigate => web_sys::RequestMode::Navigate,
             RequestMode::NoCors => web_sys::RequestMode::NoCors,
             RequestMode::SameOrigin => web_sys::RequestMode::SameOrigin,
+        }
+    }
+}
+
+impl Into<u32> for RequestStatus {
+    fn into(self) -> u32 {
+        match self {
+            RequestStatus::Processing => 0,
+            RequestStatus::Success => 1,
+            RequestStatus::Fail => 2,
+            RequestStatus::Pending => 3,
         }
     }
 }
