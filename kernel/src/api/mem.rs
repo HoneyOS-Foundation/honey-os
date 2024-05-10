@@ -7,7 +7,9 @@ use wasm_bindgen::closure::Closure;
 pub fn register_mem_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuilder) {
     // hapi_mem_alloc
     // Allocate a block of memory and return it's pointer.
-    // Return null if the memory allocation failed
+    // ### Returns
+    // - The pointer to the block
+    // - `NULL` if the memory allocation failed
     let ctx_f = ctx.clone();
     builder.register(
         "hapi_mem_alloc",
@@ -23,7 +25,9 @@ pub fn register_mem_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuilder) 
 
     // hapi_mem_realloc
     // Reallocate a block of memory and return the new pointer.
-    // Return null if the memory allocation failed
+    // ### Returns
+    // - The pointer to the block
+    // - `NULL` if the memory allocation failed
     let ctx_f = ctx.clone();
     builder.register(
         "hapi_mem_realloc",

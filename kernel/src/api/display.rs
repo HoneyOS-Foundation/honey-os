@@ -23,7 +23,9 @@ pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
 
     // hapi_display_server_claim_main
     // Claim the display server, displaying the process's display
-    // Returns -1 if no display is registered
+    // ### Returns
+    // - `0` on success
+    // - `-1` if no display is registered
     let ctx_f = ctx.clone();
     builder.register(
         "hapi_display_server_claim_main",
@@ -39,8 +41,10 @@ pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
     );
 
     // hapi_display_push_stdout
-    // Push stdout to the display.
-    // Returns -1 if no display is registered
+    // Push stdout to the display's text-mode buffer.
+    // ### Returns
+    // - `0` on success
+    // - `-1` if no display is registered
     let ctx_f = ctx.clone();
     builder.register(
         "hapi_display_push_stdout",
@@ -66,7 +70,9 @@ pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
 
     // hapi_display_set_text
     // Set the text in the displays text-mode buffer.
-    // Returns -1 if no display is registered.
+    // ### Returns
+    // - `0` on success
+    // - `-1` if no display is registered
     let ctx_f = ctx.clone();
     builder.register(
         "hapi_display_set_text",
@@ -86,15 +92,17 @@ pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
     );
 
     // hapi_display_get_key_buffer
-    // Get the key in the displays key buffer.
-    // Returns -1 if no display is registered, or if the key buffer is empty.
+    // Get the key in the displays key buffer. Clears it afterwards.
+    // ### Returns
+    // - `-1` or if the key buffer is empty.
+    // - `-2` if no display is registered.
     let ctx_f = ctx.clone();
     builder.register(
         "hapi_display_get_key_buffer",
         Closure::<dyn Fn() -> i32>::new(move || loop {
             let mut display_server = DisplayServer::blocking_get();
             let Some(display) = display_server.display_mut(ctx_f.pid()) else {
-                return -1;
+                return -2;
             };
             return display.keybuffer.key;
         })
@@ -103,7 +111,8 @@ pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
 
     // hapi_display_get_key_shift
     // Whether or not the shift key is in the key buffer
-    // Returns -1 if no display is registered, or if the key buffer is empty.
+    // ### Returns
+    // - `-1` if no display is registered.
     let ctx_f = ctx.clone();
     builder.register(
         "hapi_display_get_key_shift",
@@ -119,7 +128,8 @@ pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
 
     // hapi_display_get_key_ctrl
     // Whether or not the control key is in the key buffer
-    // Returns -1 if no display is registered, or if the key buffer is empty.
+    // ### Returns
+    // - `-1` if no display is registered.
     let ctx_f = ctx.clone();
     builder.register(
         "hapi_display_get_key_ctrl",
@@ -135,7 +145,8 @@ pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
 
     // hapi_display_clear_key
     // Clears the key buffer of the display
-    // Returns -1 if no display is registered, or if the key buffer is empty.
+    // ### Returns
+    // - `-1` if no display is registered.
     let ctx_f = ctx.clone();
     builder.register(
         "hapi_display_clear_key",

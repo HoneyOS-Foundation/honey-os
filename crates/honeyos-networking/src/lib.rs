@@ -1,29 +1,26 @@
+pub mod error;
+pub mod request;
+
 use std::sync::{Arc, Mutex, MutexGuard, Once};
 
+use crate::error::Error;
 use hashbrown::HashMap;
+use request::{Request, RequestMethod, RequestMode, RequestStatus};
 use uuid::Uuid;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{
     js_sys::{ArrayBuffer, Uint8Array, JSON},
     wasm_bindgen::{closure::Closure, JsCast, JsValue},
-    Blob, Event, FileReader, Request, RequestInit, Response,
+    Blob, Event, FileReader, RequestInit, Response,
 };
 
 /// The static instance
 static mut NETWORKING_MANAGER: Option<Arc<Mutex<NetworkingManager>>> = None;
 
-/// The status of a request
-#[derive(Debug, Clone)]
-pub enum RequestStatus {
-    Processing,
-    Success(Vec<u8>),
-    Fail,
-}
-
 /// The networking manager for the honeyos kernel
 #[derive(Debug)]
 pub struct NetworkingManager {
-    requests: HashMap<Uuid, RequestStatus>,
+    requests: HashMap<Uuid, Request>,
 }
 
 impl NetworkingManager {
@@ -67,21 +64,36 @@ impl NetworkingManager {
 
     /// Create a request.
     /// Returns it'd id
-    pub fn request(&mut self, url: impl Into<String>, headers: impl Into<String>) -> Option<Uuid> {
+    pub fn request(
+        &mut self,
+        url: impl Into<String>,
+        method: RequestMethod,
+        mode: RequestMode,
+        headers: impl Into<String>,
+    ) -> Result<Uuid, Error> {
         let url: String = url.into();
         let headers: String = headers.into();
 
         let id = Uuid::new_v4();
-        self.requests.insert(id, RequestStatus::Processing);
+        self.requests.insert(
+            id,
+            Request {
+                data: Vec::new(),
+                status: RequestStatus::Processing,
+            },
+        );
 
         // Setup the request
-        let headers = JSON::parse(&headers).ok()?;
+        let headers = JSON::parse(&headers).map_err(|e| Error::HeaderParseFailure(e))?;
         let mut request_init = RequestInit::new();
+        request_init.mode(mode.into());
+        request_init.method(&method.to_string());
         request_init.headers(&headers);
 
         // Create the request. The request will update the status in the NetworkManager when complete
         let window = web_sys::window().unwrap();
-        let request = Request::new_with_str_and_init(&url, &request_init).unwrap();
+        let request = web_sys::Request::new_with_str_and_init(&url, &request_init)
+            .map_err(|e| Error::RequestInitFailure(e))?;
         wasm_bindgen_futures::spawn_local(async move {
             JsFuture::from(
                 window
@@ -95,23 +107,38 @@ impl NetworkingManager {
                     }))
                     .catch(&Closure::new(move |_| {
                         let mut networking_manager = NetworkingManager::blocking_get();
-                        let Some(status) = networking_manager.requests.get_mut(&id) else {
+                        let Some(request) = networking_manager.requests.get_mut(&id) else {
                             return;
                         };
-                        *status = RequestStatus::Fail
+                        request.status = RequestStatus::Fail;
                     })),
             )
             .await
             .unwrap();
         });
 
-        Some(id)
+        Ok(id)
     }
 
-    /// Return the status of a request
+    /// Return the status of a request.
+    /// Returns none if the request does not exist.
     pub fn status(&self, id: Uuid) -> Option<RequestStatus> {
         let request = self.requests.get(&id)?;
-        Some(request.clone())
+        Some(request.status)
+    }
+
+    /// Return the data of a request.
+    /// Return none if the request does not exist
+    pub fn data(&self, id: Uuid) -> Option<Vec<u8>> {
+        let request = self.requests.get(&id)?;
+        Some(request.data.clone())
+    }
+
+    /// Return the length in bytes of the data in the request
+    /// Return none if the request does not exist
+    pub fn data_length(&self, id: Uuid) -> Option<usize> {
+        let request = self.requests.get(&id)?;
+        Some(request.data.len())
     }
 
     /// Remove the request from the queue.
@@ -143,10 +170,11 @@ fn read_and_update(id: Uuid, blob: Blob) {
         array.copy_to(&mut buffer);
 
         let mut networking_manager = NetworkingManager::blocking_get();
-        let Some(status) = networking_manager.requests.get_mut(&id) else {
+        let Some(request) = networking_manager.requests.get_mut(&id) else {
             return;
         };
-        *status = RequestStatus::Success(array.to_vec())
+        request.status = RequestStatus::Success;
+        request.data.clone_from(&buffer);
     }) as Box<dyn FnMut(_)>);
 
     file_reader.set_onload(Some(onload.as_ref().unchecked_ref()));

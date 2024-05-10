@@ -15,7 +15,9 @@ struct FileDescriptor {
 pub fn register_browser_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuilder) {
     // hapi_browser_user_agent
     // Returns a pointer to the user agent.
-    // Returns NULL if failed allocate the string.
+    // ### Returns
+    // - The user agent on success
+    // - `NULL`` if failed allocate the string.
     let ctx_f = ctx.clone();
     let user_agent = web_sys::js_sys::eval("self.navigator.userAgent")
         .unwrap()
