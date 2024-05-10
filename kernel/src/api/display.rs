@@ -84,7 +84,6 @@ pub fn register_display_api(ctx: Arc<ApiModuleCtx>, builder: &mut ApiModuleBuild
             };
 
             let memory = ctx_f.memory();
-            log::info!("{:?}", memory.read(ptr as u32, 1000));
             let buf = memory.read(ptr as u32, len);
             let string = String::from_utf8_lossy(&buf).to_string();
             display.set_text(string);

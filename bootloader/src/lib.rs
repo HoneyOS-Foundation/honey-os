@@ -35,7 +35,7 @@ async fn main() -> anyhow::Result<()> {
         greeting, COLOR_TEST,
     ))?;
 
-    let request = Request::new("kernel.js", RequestMethod::Get, "{}")?;
+    let request = Request::new("/", RequestMethod::Get, "{}")?;
     let status = request.wait()?;
     match status {
         RequestStatus::Success => {
