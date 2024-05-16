@@ -8,7 +8,9 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = "1.0.82"
-hapi = { path = "../hapi", features = ["logger"] }
+hapi = { git = "https://github.com/HoneyOS-Foundation/Hapi", features = [
+    "logger",
+] }
 log = "0.4.21"
-wasm-bindgen = "0.2.92"
 wasm_thread = "0.3.0"
+zip = { version = "1.2.3", default-features = false }
