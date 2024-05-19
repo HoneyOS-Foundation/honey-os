@@ -4,3 +4,6 @@
 [submodule "bootloader"]
 	path = bootloader
 	url = https://github.com/HoneyOS-Foundation/bootloader.git
+[submodule "hapi"]
+	path = hapi
+	url = https://github.com/HoneyOS-Foundation/hapi.git

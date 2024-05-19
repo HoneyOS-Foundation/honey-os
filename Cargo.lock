@@ -576,7 +576,6 @@ dependencies = [
 [[package]]
 name = "hapi"
 version = "0.1.0"
-source = "git+https://github.com/HoneyOS-Foundation/Hapi#a44caf58e79b7b1fbcbd88fbd06018c620882824"
 dependencies = [
  "futures",
  "hapi-proc",
@@ -586,7 +585,6 @@ dependencies = [
 [[package]]
 name = "hapi-proc"
 version = "0.1.0"
-source = "git+https://github.com/HoneyOS-Foundation/Hapi#a44caf58e79b7b1fbcbd88fbd06018c620882824"
 dependencies = [
  "quote",
  "syn",
