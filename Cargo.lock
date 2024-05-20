@@ -661,6 +661,7 @@ dependencies = [
  "arc-swap",
  "futures",
  "hashbrown",
+ "honeyos-fs",
  "log",
  "serde-wasm-bindgen 0.6.5",
  "tokio",
