@@ -2,7 +2,11 @@
 target = ["wasm32-unknown-unknown"]
 
 [target.wasm32-unknown-unknown]
-rustflags = ["-C", "target-feature=+atomics,+bulk-memory,+mutable-globals"]
+rustflags = [
+    "-C",
+    "target-feature=+atomics,+bulk-memory,+mutable-globals",
+    "-Clink-arg=--export-table",
+]
 runner = 'wasm-bindgen-test-runner'
 
 [unstable]
