@@ -18,6 +18,11 @@ body {
     line-height: 1;
 }
 
+::selection {
+    background-color: #ffffff;
+    color: #000;
+}
+
 #display {
     position: absolute;
     display: block;  
