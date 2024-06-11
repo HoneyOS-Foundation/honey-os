@@ -40,15 +40,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 def pkg_bootloader():
     """ Build and package the bootloader """
-    os.system(
+    result = os.system(
         "cd bootloader && cargo build --release --target wasm32-unknown-unknown")
+    if result < 0:
+        exit(result)
     shutil.copyfile(
         "target/wasm32-unknown-unknown/release/bootloader.wasm", "pkg/boot.wasm")
 
 
 def pkg_kernel():
     """ Build the kernel """
-    os.system("cd kernel && cargo make pkg")
+    result = os.system("cd kernel && cargo make pkg")
+    if result < 0:
+        exit(result)
 
 
 def pkg_www():
