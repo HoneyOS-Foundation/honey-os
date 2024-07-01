@@ -45,3 +45,15 @@ body {
     word-wrap: break-word;
     word-break: break-all;
 }
+
+@keyframes blink {
+    0% { background-color: #fff; color: #000 }
+    50% { background-color: #000; color: #fff }
+    100% { background-color: #fff; color: #000 }
+}
+
+.cursor {
+    background-color: #ffffff;
+    color: #000000;
+    animation: blink .75s infinite step-start;
+}

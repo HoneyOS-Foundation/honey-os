@@ -25,7 +25,6 @@ checksum = "e89da841a80418a9b391ebaea17f5c112ffaaa96f621d2c285b5174da76b9011"
 dependencies = [
  "cfg-if",
  "const-random",
- "getrandom",
  "once_cell",
  "version_check",
  "zerocopy",
@@ -646,9 +645,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
 
 [[package]]
+name = "honeyos-atomics"
+version = "0.1.0"
+
+[[package]]
 name = "honeyos-bhai"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "log",
  "rhai",
  "uuid",
 ]
@@ -658,6 +663,7 @@ name = "honeyos-display"
 version = "0.1.0"
 dependencies = [
  "hashbrown",
+ "honeyos-atomics",
  "honeyos-process",
  "log",
  "uuid",
@@ -684,6 +690,7 @@ name = "honeyos-networking"
 version = "0.1.0"
 dependencies = [
  "hashbrown",
+ "honeyos-atomics",
  "uuid",
  "wasm-bindgen-futures",
  "web-sys",
@@ -697,6 +704,8 @@ dependencies = [
  "arc-swap",
  "futures",
  "hashbrown",
+ "honeyos-atomics",
+ "honeyos-bhai",
  "honeyos-fs",
  "log",
  "serde-wasm-bindgen 0.6.5",
@@ -704,7 +713,6 @@ dependencies = [
  "uuid",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm_thread",
  "wasmparser",
  "web-sys",
 ]
@@ -732,6 +740,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0242819d153cba4b4b05a5a8f2a7e9bbf97b6055b2a002b395c96b5ff3c0222"
 dependencies = [
  "cfg-if",
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -767,6 +778,7 @@ dependencies = [
  "anyhow",
  "console_error_panic_hook",
  "console_log",
+ "honeyos-atomics",
  "honeyos-bhai",
  "honeyos-display",
  "honeyos-fs",
@@ -941,6 +953,7 @@ checksum = "7a7d88770120601ba1e548bb6bc2a05019e54ff01b51479e38e64ec3b59d4759"
 dependencies = [
  "ahash",
  "bitflags 2.5.0",
+ "getrandom",
  "instant",
  "num-traits",
  "once_cell",

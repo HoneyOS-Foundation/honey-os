@@ -6,8 +6,8 @@
   </head>
   <body>
     <script type="module">
-      import init from "./kernel.js";
-      init("./kernel_bg.wasm");
+      import init, { main } from "./kernel.js";
+      init("./kernel_bg.wasm").then(() => main());
     </script>
   </body>
 </html>
